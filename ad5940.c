@@ -203,7 +203,7 @@ static void AD5940_SEQRegInfoInsert(uint16_t RegAddr, uint32_t RegData)
   {
     SeqGenDB.pRegInfo --; /* Move back */
     SeqGenDB.pRegInfo[0].RegAddr = (RegAddr>>2)&0xff;
-    SeqGenDB.pRegInfo[0].RegValue = RegData&0x00fffff;
+    SeqGenDB.pRegInfo[0].RegValue = RegData&0x00ffffff;
     SeqGenDB.RegCount ++;
   }
   else  /* There is no more buffer  */
