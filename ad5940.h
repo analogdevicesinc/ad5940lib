@@ -3888,8 +3888,8 @@
  * @defgroup FIFOMODE_Const
  * @{
 */
-#define FIFOMODE_FIFO               0     /**< Standard FIFO mode. If FIFO is full, reject all comming data and put FIFO to fault state, report interrupt if enabled */
-#define FIFOMODE_STREAM             1     /**< Stream mode. If FIFO is full, discard older data. Report FIFO full interrupt if enabled */
+#define FIFOMODE_FIFO               2     /**< Standard FIFO mode. If FIFO is full, reject all comming data and put FIFO to fault state, report interrupt if enabled */
+#define FIFOMODE_STREAM             3     /**< Stream mode. If FIFO is full, discard older data. Report FIFO full interrupt if enabled */
 /** @} */
 
 /**
