@@ -45,6 +45,15 @@ For ADuCM355, define macro CHIPSEL_M355.
 
 For AD594x, define macro CHIPSEL_594X, and provide basic SPI low level interface. See examples in repository ad5940-examples.
 
+## API naming rules
+All APIs are started with 'AD5940_', following with block name that is going to operate.
+
+For functions ended with character 'S'(short of sequencer), it means the registers accessed in this function are all accessible by Sequencer.
+
+```void AD5940_ADCFilterCfgS(ADCFilterCfg_Type *pFiltCfg);```
+
+Above function is for ADC filter configuration and registers modified are sequencer compatible.
+
 ## Port to another hardware platform for AD594x
 The library only requires a SPI(4 wire) and one interrupt input pin to receive interrupt from GP0 of AD594x.
 
