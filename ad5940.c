@@ -1,7 +1,6 @@
 /**  
  * @file       ad5940.c
  * @brief      AD5940 library. This file contains all AD5940 library functions. 
- * @version    V0.2.0
  * @author     ADI
  * @date       March 2019
  * @par Revision History:

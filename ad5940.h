@@ -1,7 +1,6 @@
 /**  
  * @file       ad5940.h
  * @brief      AD5940 library. This file contains all AD5940 library functions. 
- * @version    V0.2.0
  * @author     ADI
  * @date       March 2019
  * @par Revision History:
@@ -31,7 +30,7 @@
 /* library version number */
 #define AD5940LIB_VER_MAJOR       0    /**< Major number */
 #define AD5940LIB_VER_MINOR       2    /**< Minor number */
-#define AD5940LIB_VER_PATCH       0    /**< Path number */
+#define AD5940LIB_VER_PATCH       1    /**< Path number */
 #define AD5940LIB_VER   (AD5940LIB_VER_MAJOR<<16)|(AD5940LIB_VER_MINOR<<8)|(AD5940LIB_VER_PATCH)
 
 #define ADI_DEBUG   /**< Comment this line to remove debug info. */
