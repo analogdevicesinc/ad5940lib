@@ -42,7 +42,7 @@
  *  - Use EVAL_AD5940 or EVAL_AD5941. The default MCU board we used is ADICUP3029. We also provide project for ST NUCLEO board.
  *  - Or use EVAL_ADuCM355
  *  ### Software
- *  - Grap all the source file from [GitHub](https://github.com/analogdevicesinc/ad5940-examples.git)
+ *  - Pull all the source file from [GitHub](https://github.com/analogdevicesinc/ad5940-examples.git)
  *  - CMSIS pack that related to specific MCU. This normally is done by IDE you use.
  * 
  * ## Materials
@@ -373,7 +373,7 @@ void AD5940_ClksCalculate(ClksCalInfo_Type *pFilterInfo, uint32_t *pClocks)
       temp = (uint32_t)(((pFilterInfo->DataCount+2)*sinc3osr_table[pFilterInfo->ADCSinc3Osr]+1)*20*pFilterInfo->RatioSys2AdcClk + 0.5f);
       break;
     case DATATYPE_SINC2: 
-      temp = (pFilterInfo->DataCount+1)*sin2osr_table[pFilterInfo->ADCSinc2Osr] + 1;  /* SINC2 input is SINCS */
+      temp = (pFilterInfo->DataCount+1)*sin2osr_table[pFilterInfo->ADCSinc2Osr] + 1;
       pFilterInfo->DataType = DATATYPE_SINC3;
       pFilterInfo->DataCount = temp;
       AD5940_ClksCalculate(pFilterInfo, &temp);
@@ -404,7 +404,7 @@ void AD5940_ClksCalculate(ClksCalInfo_Type *pFilterInfo, uint32_t *pClocks)
           break;
       }
       pFilterInfo->DataType = DATATYPE_DFT;
-      temp += 25; /* @todo add how much clocks are safe enough? */
+      temp += 25; /* add margin */
       break;
     default:
     break;
@@ -859,7 +859,7 @@ uint32_t AD5940_ReadReg(uint16_t RegAddr)
  * @defgroup AFE_Control 
  * @brief Some functions to control the whole AFE. They are top level switches.
  * @{
- *    @defgroup AFE_Control_Functinos
+ *    @defgroup AFE_Control_Functions
  *    The top-level control functions for whole AFE perspective. 
  *    @details  This function set is used to control the whole AFE block by block. It's a top-level configuration.
  *              It's convenient when do initialization work with the functions called BLOCK**Cfg**. You can tune the parameters at run-time using more detailed
@@ -964,7 +964,6 @@ void AD5940_AFECtrlS(uint32_t AfeCtrlSet, BoolFlag State)
   else
   {
     /* Set bits to Disable HPREF and ALDOLimit*/
-    /*! @todo check ALDOLimit bit definition. Set to enable limitation or clear. */
     if(AfeCtrlSet & AFECTRL_HPREFPWR)
     {
         tempreg |= BITM_AFE_AFECON_HPREFDIS;
@@ -1108,7 +1107,7 @@ void AD5940_REFCfgS(AFERefCfg_Type *pBufCfg)
   AD5940_WriteReg(REG_AFE_LPREFBUFCON, tempreg);
 }
 /**
- * @} End of AFE_Control_Functinos
+ * @} End of AFE_Control_Functions
  * @} End of AFE_Control
  * */
 
@@ -2153,7 +2152,6 @@ void AD5940_WUPTCfg(WUPTCfg_Type *pWuptCfg)
 {
   uint32_t tempreg;
   //check parameters
-  
   /* Sleep and Wakeup time */
   AD5940_WriteReg(REG_WUPTMR_SEQ0WUPL, (pWuptCfg->SeqxWakeupTime[0] & 0xFFFF));    
   AD5940_WriteReg(REG_WUPTMR_SEQ0WUPH, (pWuptCfg->SeqxWakeupTime[0] & 0xF0000)>>16);
@@ -2194,9 +2192,7 @@ void AD5940_WUPTCfg(WUPTCfg_Type *pWuptCfg)
   tempreg = 0;
   if(pWuptCfg->WuptEn == bTRUE)
     tempreg |= BITM_WUPTMR_CON_EN;
-  //if(pWuptCfg->TrigSeqEn == bFALSE)
   /* We always allow Wupt to trigger sequencer */
-  ///tempreg |= BITM_WUPTMR_CON_MSKTRG;  /* Disable path of trigger signal to sequencer */
   tempreg |= pWuptCfg->WuptEndSeq << BITP_WUPTMR_CON_ENDSEQ;
   //tempreg |= 1L<<4;
   AD5940_WriteReg(REG_WUPTMR_CON, tempreg);
@@ -2969,7 +2965,7 @@ AD5940Err AD5940_ADCPGACal(ADCPGACal_Type *pADCPGACal)
   /* Step0.1 Initialize ADC basic function */
   adc_base.ADCMuxP = OffsetADCMuxPSel;
   adc_base.ADCMuxN = OffsetADCMuxNSel;
-  adc_base.ADCPga = pADCPGACal->ADCPga;                   /* Set correct Gain value. **@todo Why not use higher gain to measure offset? */
+  adc_base.ADCPga = pADCPGACal->ADCPga;                   /* Set correct Gain value. */
   AD5940_ADCBaseCfgS(&adc_base);
   hsloop_cfg.HsDacCfg.ExcitBufGain = EXCITBUFGAIN_2;
   hsloop_cfg.HsDacCfg.HsDacGain = HSDACGAIN_1;
@@ -3150,7 +3146,7 @@ AD5940Err AD5940_LPTIAOffsetCal(LPTIAOffsetCal_Type *pLPTIAOffsetCal)
     adc_base.ADCMuxP = ADCMUXP_LPTIA1_P;      
     adc_base.ADCMuxN = ADCMUXN_LPTIA1_N;
   }
-  adc_base.ADCPga = pLPTIAOffsetCal->ADCPga;                 /* Set correct Gain value. **@todo Why not use higher gain to measure offset? */
+  adc_base.ADCPga = pLPTIAOffsetCal->ADCPga;                 /* Set correct Gain value. */
   AD5940_ADCBaseCfgS(&adc_base);
   /* Turn ON ADC and its reference. And SINC2. */
   AD5940_AFECtrlS(AFECTRL_ALL, bFALSE); /* Disable all firstly, we only enable things we use */
@@ -3327,8 +3323,8 @@ AD5940Err AD5940_HSRtiaCal(HSRTIACal_Type *pCalCfg, void *pResult)
   hs_loop.SWMatCfg.Nswitch = SWN_RCAL1;
   hs_loop.SWMatCfg.Tswitch = SWT_RCAL1|SWT_TRTIA;
   hs_loop.WgCfg.WgType = WGTYPE_SIN;
-  hs_loop.WgCfg.GainCalEn = bFALSE;      /* @todo. If we have factory calibration data, enable it */
-  hs_loop.WgCfg.OffsetCalEn = bFALSE;
+  hs_loop.WgCfg.GainCalEn = bTRUE;
+  hs_loop.WgCfg.OffsetCalEn = bTRUE;
   hs_loop.WgCfg.SinCfg.SinFreqWord = AD5940_WGFreqWordCal(pCalCfg->fFreq, pCalCfg->SysClkFreq);
   hs_loop.WgCfg.SinCfg.SinAmplitudeWord = WgAmpWord;
   hs_loop.WgCfg.SinCfg.SinOffsetWord = 0;
@@ -3337,7 +3333,7 @@ AD5940Err AD5940_HSRtiaCal(HSRTIACal_Type *pCalCfg, void *pResult)
   /* Configure DSP */
   dsp_cfg.ADCBaseCfg.ADCMuxN = ADCMUXN_N_NODE;
   dsp_cfg.ADCBaseCfg.ADCMuxP = ADCMUXP_P_NODE;
-  dsp_cfg.ADCBaseCfg.ADCPga = ADCPGA_1; /* @todo Change the gain? */
+  dsp_cfg.ADCBaseCfg.ADCPga = ADCPGA_1P5;
   AD5940_StructInit(&dsp_cfg.ADCDigCompCfg, sizeof(dsp_cfg.ADCDigCompCfg));
   dsp_cfg.ADCFilterCfg.ADCAvgNum = ADCAVGNUM_16;  /* Don't care because it's disabled */
   dsp_cfg.ADCFilterCfg.ADCRate = bADCClk32MHzMode?ADCRATE_1P6MHZ:ADCRATE_800KHZ;
@@ -3493,7 +3489,7 @@ AD5940Err AD5940_LPRtiaCal_HSDAC(LPRTIACal_Type *pCalCfg, void *pResult)
     ADC input range is +-1.5V which is enough for calibration.
     
   */
-  ExcitVolt = 2300*0.8*pCalCfg->fRcal/RtiaVal; /*@todo check equation. */
+  ExcitVolt = 2300*0.8*pCalCfg->fRcal/RtiaVal;
 
   if(ExcitVolt <= 800*0.05) /* Voltage is so small that we can enable the attenuator of DAC(1/5) and Excitation buffer(1/4). 800mVpp is the DAC output voltage */
   {
@@ -3573,25 +3569,25 @@ AD5940Err AD5940_LPRtiaCal_HSDAC(LPRTIACal_Type *pCalCfg, void *pResult)
   /* Configure HSDAC */
   hs_loop.HsDacCfg.ExcitBufGain = ExcitBuffGain;
   hs_loop.HsDacCfg.HsDacGain = HsDacGain;
-  hs_loop.HsDacCfg.HsDacUpdateRate = 27; /* @todo ?Set it to highest update rate */
+  hs_loop.HsDacCfg.HsDacUpdateRate = 27;
   hs_loop.SWMatCfg.Dswitch = SWD_RCAL0;
   hs_loop.SWMatCfg.Pswitch = SWP_RCAL0;
   hs_loop.SWMatCfg.Nswitch = SWN_RCAL1;
   hs_loop.SWMatCfg.Tswitch = SWT_RCAL1|SWT_SE0LOAD; /* Let current flow to SE0, then to RTIA of LPTIA */
   /* Configure HSDAC */
   if(bDCMode)
-  {///@todo check accuracy of DC calibration. @todo need calibrate ADC/LPTIA offset firstly.
+  {// need calibrate ADC/LPTIA offset firstly.
     hs_loop.WgCfg.WgType = WGTYPE_MMR;
     hs_loop.WgCfg.WgCode = WgAmpWord;   /* Amplitude word is exactly the maximum DC voltage we could use */
-    hs_loop.WgCfg.GainCalEn = bFALSE;      /* @todo. If we have factory calibration data, enable it */
-    hs_loop.WgCfg.OffsetCalEn = bFALSE;
+    hs_loop.WgCfg.GainCalEn = bTRUE;
+    hs_loop.WgCfg.OffsetCalEn = bTRUE;
     AD5940_HSLoopCfgS(&hs_loop);
 
     /* Configure DSP */
     AD5940_StructInit(&dsp_cfg, sizeof(dsp_cfg));
     dsp_cfg.ADCBaseCfg.ADCMuxN = ADCMUXN_N_NODE;
     dsp_cfg.ADCBaseCfg.ADCMuxP = ADCMUXP_P_NODE;
-    dsp_cfg.ADCBaseCfg.ADCPga = ADCPGA_1; /* @todo Change the gain? */
+    dsp_cfg.ADCBaseCfg.ADCPga = ADCPGA_1P5;
     dsp_cfg.ADCFilterCfg.ADCAvgNum = ADCAVGNUM_16;  /* Don't care because it's disabled */
     dsp_cfg.ADCFilterCfg.ADCRate = bADCClk32MHzMode?ADCRATE_1P6MHZ:ADCRATE_800KHZ;
     dsp_cfg.ADCFilterCfg.ADCSinc2Osr = pCalCfg->ADCSinc2Osr;
@@ -3605,13 +3601,11 @@ AD5940Err AD5940_LPRtiaCal_HSDAC(LPRTIACal_Type *pCalCfg, void *pResult)
     dsp_cfg.ADCFilterCfg.WGClkEnable = bTRUE;
     AD5940_DSPCfgS(&dsp_cfg);
     AD5940_INTCClrFlag(AFEINTSRC_SINC2RDY);
-    /* Enable all of them. They are automatically turned off during hibernate mode to save power */
     AD5940_AFECtrlS(AFECTRL_INAMPPWR|AFECTRL_EXTBUFPWR|AFECTRL_DACREFPWR|AFECTRL_HSDACPWR|AFECTRL_SINC2NOTCH, bTRUE);
     AD5940_AFECtrlS(AFECTRL_WG|AFECTRL_ADCPWR, bTRUE);  /* Enable Waveform generator, ADC power */
-    //wait for sometime. @todo add delay here
+    AD5940_Delay10us(25); //wait 250us.
     AD5940_AFECtrlS(AFECTRL_ADCCNV, bTRUE);  /* Start ADC convert and DFT */
     /* Wait until DFT ready */
-    ///@todo Enable INTC1 firstly.
     while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_SINC2RDY) == bFALSE);  
     AD5940_AFECtrlS(AFECTRL_ADCCNV|AFECTRL_WG|AFECTRL_ADCPWR, bFALSE);  /* Stop ADC convert and DFT */
     AD5940_INTCClrFlag(AFEINTSRC_SINC2RDY);
@@ -3645,15 +3639,15 @@ AD5940Err AD5940_LPRtiaCal_HSDAC(LPRTIACal_Type *pCalCfg, void *pResult)
     hs_loop.WgCfg.SinCfg.SinAmplitudeWord = WgAmpWord;
     hs_loop.WgCfg.SinCfg.SinOffsetWord = 0;
     hs_loop.WgCfg.SinCfg.SinPhaseWord = 0;
-    hs_loop.WgCfg.GainCalEn = bFALSE;      /* @todo. If we have factory calibration data, enable it */
-    hs_loop.WgCfg.OffsetCalEn = bFALSE;
+    hs_loop.WgCfg.GainCalEn = bTRUE;
+    hs_loop.WgCfg.OffsetCalEn = bTRUE;
     AD5940_HSLoopCfgS(&hs_loop);
 
     /* Configure DSP */
     AD5940_StructInit(&dsp_cfg, sizeof(dsp_cfg));
     dsp_cfg.ADCBaseCfg.ADCMuxN = ADCMUXN_N_NODE;
     dsp_cfg.ADCBaseCfg.ADCMuxP = ADCMUXP_P_NODE;
-    dsp_cfg.ADCBaseCfg.ADCPga = ADCPGA_1; /* @todo Change the gain? */
+    dsp_cfg.ADCBaseCfg.ADCPga = ADCPGA_1P5;
     dsp_cfg.ADCFilterCfg.ADCAvgNum = ADCAVGNUM_16;  /* Don't care because it's disabled */
     dsp_cfg.ADCFilterCfg.ADCRate = bADCClk32MHzMode?ADCRATE_1P6MHZ:ADCRATE_800KHZ;
     dsp_cfg.ADCFilterCfg.ADCSinc2Osr = pCalCfg->ADCSinc2Osr;
@@ -3686,7 +3680,6 @@ AD5940Err AD5940_LPRtiaCal_HSDAC(LPRTIACal_Type *pCalCfg, void *pResult)
 
     AD5940_AFECtrlS(AFECTRL_INAMPPWR|AFECTRL_EXTBUFPWR|AFECTRL_DACREFPWR|AFECTRL_HSDACPWR|AFECTRL_SINC2NOTCH, bTRUE);
     /* Wait until DFT ready */
-    ///@todo Enable INTC1 firstly.
     AD5940_SEQMmrTrig(SEQID_3);
     while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_DFTRDY) == bFALSE);  
     AD5940_AFECtrlS(AFECTRL_ADCCNV|AFECTRL_DFT|AFECTRL_WG|AFECTRL_ADCPWR, bFALSE);  /* Stop ADC convert and DFT */
@@ -3839,7 +3832,7 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
                             /* Maximum peak2peak voltage for AD5940 10kOhm RCAL is 1400mV */
   #define __MAXVOLT_AMP_CODE  (MAXVOLT_P2P*2047L/2200)
  /** @endcond */
-  ExcitVolt = 2000*0.8*pCalCfg->fRcal/RtiaVal; /*@todo check equation. */
+  ExcitVolt = 2000*0.8*pCalCfg->fRcal/RtiaVal;
   WgAmpWord = ((uint32_t)(ExcitVolt/2200*2047*2)+1)>>1; /* Assign value with rounding (0.5 LSB error) */
   if(WgAmpWord > __MAXVOLT_AMP_CODE)
     WgAmpWord = __MAXVOLT_AMP_CODE;
@@ -3941,7 +3934,7 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
     hs_loop.WgCfg.GainCalEn = bFALSE;		    /* We don't have calibration value for LPDAC, so we don't use it. */
     hs_loop.WgCfg.OffsetCalEn = bFALSE;
     AD5940_HSLoopCfgS(&hs_loop);
-    AD5940_WGDACCodeS(WgAmpWord + 0x800);   /**@todo Why above write doesn't take effect? */
+    AD5940_WGDACCodeS(WgAmpWord + 0x800);
 		AD5940_AFECtrlS(AFECTRL_HSTIAPWR|AFECTRL_INAMPPWR|AFECTRL_WG|AFECTRL_ADCPWR, bTRUE); /* Apply voltage to loop and turn on ADC */
     /* Do offset measurement */
     pSWCfg->Dswitch = SWD_RCAL0;//|SWD_SE0;   /* Disconnect SE0 for now to measure the offset voltage. */
@@ -4232,7 +4225,7 @@ AD5940Err AD5940_HSDACCal(HSDACCal_Type *pCalCfg)
   /* Step0.1 Initialize ADC basic function */
   adc_base.ADCMuxP = ADCMUXP_P_NODE;
   adc_base.ADCMuxN = ADCMUXN_N_NODE;
-  adc_base.ADCPga = ADCPGA_Sel;                   /* Set correct Gain value. **@todo Why not use higher gain to measure offset? */
+  adc_base.ADCPga = ADCPGA_Sel;
   AD5940_ADCBaseCfgS(&adc_base);
   
   /* Step0.2 Configure LPDAC to connect VZERO to HSTIA */
@@ -4267,7 +4260,7 @@ AD5940Err AD5940_HSDACCal(HSDACCal_Type *pCalCfg)
   hsloop_cfg.WgCfg.WgType = WGTYPE_MMR;
   hsloop_cfg.WgCfg.WgCode = HSDACCode;
   AD5940_HSLoopCfgS(&hsloop_cfg);
-  /* Step0.4 Turn ON reference and ADC power, and DAC power and DAC reference. We use DAC 1.8V reference to calibrate ADC because of the ADC reference bug. */
+  /* Step0.4 Turn ON reference and ADC power, and DAC power and DAC reference. We use DAC 1.8V reference to calibrate ADC. */
   AD5940_AFECtrlS(AFECTRL_ALL, bFALSE); /* Disable all */
   AD5940_AFECtrlS(AFECTRL_ADCPWR|AFECTRL_HPREFPWR|AFECTRL_DACREFPWR|AFECTRL_HSDACPWR|AFECTRL_SINC2NOTCH|\
     AFECTRL_EXTBUFPWR|AFECTRL_INAMPPWR|AFECTRL_HSTIAPWR|AFECTRL_WG, bTRUE);
@@ -4305,7 +4298,6 @@ AD5940Err AD5940_HSDACCal(HSDACCal_Type *pCalCfg)
 		ADI_Print("Voltage after cal: %f \n", AD5940_ADCCode2Volt(ADCCode, ADCPGA_Sel, 1.82));
 #endif
   }
-	/* @todo: Add Gain Calibration */
   AD5940_WriteReg(REG_AFE_CALDATLOCK, 0);  /* Lock KEY */
   return AD5940ERR_OK;
 DACCALERROR_TIMEOUT:
@@ -4494,8 +4486,6 @@ LPDACCALERROR:
 **/
 AD5940Err AD5940_LFOSCMeasure(LFOSCMeasure_Type *pCfg, float *pFreq) /* Measure current LFOSC frequency. */
 {
-  ////@todo after function call, some registers are modified and user should take responsibility to re-init it.
-
   /**
    * @code
    *  Sleep wakeup timer running...
@@ -4537,7 +4527,7 @@ AD5940Err AD5940_LFOSCMeasure(LFOSCMeasure_Type *pCfg, float *pFreq) /* Measure 
 
   if(pCfg == NULL) return AD5940ERR_NULLP;
   if(pFreq == NULL) return AD5940ERR_NULLP;
-  if(pCfg->CalDuration < 1.0f)  /* @todo check the minimum value. The minimum value is 1.0 ms */
+  if(pCfg->CalDuration < 1.0f)
     return AD5940ERR_PARA;
   AD5940_SEQGetCfg(&seq_cfg_backup);
   INTCCfg = AD5940_INTCGetCfg(AFEINTC_1);
@@ -4578,7 +4568,7 @@ AD5940Err AD5940_LFOSCMeasure(LFOSCMeasure_Type *pCfg, float *pFreq) /* Measure 
   AD5940_INTCClrFlag(AFEINTSRC_ENDSEQ);
   AD5940_WUPTCtrl(bTRUE);
   
-  while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_ENDSEQ) == bFALSE);  /* @todo if SPI speed is too slow, it will affect frequency measurement accuracy */
+  while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_ENDSEQ) == bFALSE);
   TimerCount = AD5940_SEQTimeOutRd();
   
   AD5940_WUPTCtrl(bFALSE);

@@ -3285,7 +3285,6 @@
 /**
  * @defgroup HSTIABIAS_Const
  * @warning When select Vzero0 as bias, close LPDAC switch<xxx>
- * @todo add LPDAC switch description.
  * @{
 */
 #define HSTIABIAS_1P1               0   /**< Internal 1.1V common voltage from internal 1.1V reference buffer */
@@ -3313,7 +3312,6 @@
 
 /**
  * @defgroup HSTIADERTIA_Const
- * @todo add notes for DE node RTIA settings.
  * @{
 */
 #define HSTIADERTIA_50              0     /**< 50Ohm Settings depends on RLOAD resistor. */
@@ -3480,7 +3478,6 @@
  * @defgroup LPTIARTIA_Const
  * @brief LPTIA RTIA Selection
  * @note The real RTIA resistor value dependents on Rload settings.
- * @todo Add explanation of relation between Rload and RTIA.
  * @{
 */
 #define LPTIARTIA_OPEN              0   /**< Disconnect LPTIA Internal RTIA */
@@ -3780,7 +3777,6 @@
 /**
  * @defgroup STATDEV_Const
  * @brief The standard deviation configure
- * @todo Add explanation.
  * @{
 */
 #define STATDEV_1                   1     /**< Used for check outlier of ADC result */
@@ -4273,7 +4269,7 @@ typedef struct
   BoolFlag BpNotch;             /**< Bypass Notch filter module. ADCFILTERCON.BIT4 */
   BoolFlag BpSinc3;             /**< Bypass SINC3 Module */
   BoolFlag Sinc3ClkEnable;      /**< Enable SINC3 clock */
-  BoolFlag Sinc2NotchClkEnable; /**< Enable SINC2+Notch clock @todo, delete it because we already have an 'Enable' switch. */
+  BoolFlag Sinc2NotchClkEnable; /**< Enable SINC2+Notch clock */
   BoolFlag Sinc2NotchEnable;    /**< Enable SINC2+Notch block */
   BoolFlag DFTClkEnable;        /**< Enable DFT clock */
   BoolFlag WGClkEnable;         /**< Enable Waveform Generator clock */
@@ -4299,7 +4295,7 @@ typedef struct
   uint16_t ADCMinHys; 
   uint16_t ADCMax;      /**< The ADC code maximum limit value */
   uint16_t ADCMaxHys;   
-}ADCDigComp_Type;/**< @todo not tested */
+}ADCDigComp_Type;
 
 /**
  * Statistic function
@@ -4324,7 +4320,7 @@ typedef struct
 /** HSTIA Configure */
 typedef struct
 {
-  uint32_t HstiaBias;         /**< @todo When select Vzero as bias, the switch at LPDAC should be closed */
+  uint32_t HstiaBias;         /**< When select Vzero as bias, the related switch(VZERO2HSTIA) at LPDAC should be closed */
   uint32_t HstiaRtiaSel;      /**< RTIA selection @ref HSTIARTIA_Const */
   uint32_t HstiaCtia;         /**< Set internal CTIA value from 1 to 32 pF */
   BoolFlag DiodeClose;        /**< Close the switch for internal back to back diode */
@@ -4534,7 +4530,7 @@ typedef struct
   uint32_t WuptEndSeq;       /**<  end sequence selection @ref WUPTENDSEQ_Const. Wupt will go back to slot A after this one is executed. */
   uint32_t WuptOrder[8];     /**<  The 8 slots for WakeupTimer. Place @ref SEQID_Const to this array. */
   uint32_t SeqxSleepTime[4];  /**< Time before put AFE to sleep. 0 to 0x000f_ffff. We normally don't use this feature and it's disabled in @ref AD5940_Initialize */
-  uint32_t SeqxWakeupTime[4]; /**< Time before wakup AFE.  */
+  uint32_t SeqxWakeupTime[4]; /**< Time before Wakeup AFE.  */
   BoolFlag WuptEn;            /**< Timer enable. Once enabled, it starts to run. */
 }WUPTCfg_Type;
 
@@ -4576,7 +4572,7 @@ typedef struct
 */
 typedef struct
 {
-  float fFreq;                /**< Calibration frequency. @todo DC not verified now. Set it to 0.0 for DC calibration */
+  float fFreq;                /**< Calibration frequency. Set it to 0.0 for DC calibration */
   float fRcal;                /**< Rcal resistor value in Ohm*/
   float SysClkFreq;           /**< The real frequency of system clock */  
   float AdcClkFreq;           /**< The real frequency of ADC clock */   
@@ -4821,7 +4817,7 @@ AD5940Err AD5940_SEQInfoGet(uint32_t SeqId, SEQInfo_Type *pSeqInfo);
 void      AD5940_SEQGpioCtrlS(uint32_t GpioSet);   /* Sequencer can control GPIO0~7 if the GPIO function is set to SYNC */
 uint32_t  AD5940_SEQTimeOutRd(void);  /* Read back current sequence time out value */
 AD5940Err AD5940_SEQGpioTrigCfg(SeqGpioTrig_Cfg *pSeqGpioTrigCfg);
-void      AD5940_WUPTCfg(WUPTCfg_Type *pWuptCfg); ///@todo not done.
+void      AD5940_WUPTCfg(WUPTCfg_Type *pWuptCfg);
 void      AD5940_WUPTCtrl(BoolFlag Enable);  /* Enable or disable Wakeup timer */
 AD5940Err AD5940_WUPTTime(uint32_t SeqId, uint32_t SleepTime, uint32_t WakeupTime);
 
@@ -4878,7 +4874,7 @@ void      AD5940_SEQGenInit(uint32_t *pBuffer, uint32_t BufferSize);/* Initializ
 void      AD5940_SEQGenCtrl(BoolFlag bFlag);  /* Enable or disable sequence generator */
 void      AD5940_SEQGenInsert(uint32_t CmdWord); /* Manually insert a sequence command */
 AD5940Err AD5940_SEQGenFetchSeq(const uint32_t **ppSeqCmd, uint32_t *pSeqCount);  /* Fetch generated sequence and start a new sequence */
-void      AD5940_ClksCalculate(ClksCalInfo_Type *pFilterInfo, uint32_t *pClocks);  /* @todo add notch filter calculation. Calculate how much clocks to reach n points of data */
+void      AD5940_ClksCalculate(ClksCalInfo_Type *pFilterInfo, uint32_t *pClocks);
 uint32_t  AD5940_SEQCycleTime(void);
 void      AD5940_SweepNext(SoftSweepCfg_Type *pSweepCfg, float *pNextFreq);
 void      AD5940_StructInit(void *pStruct, uint32_t StructSize);
