@@ -1164,6 +1164,39 @@ void AD5940_HSDacCfgS(HSDACCfg_Type *pHsDacCfg)
   AD5940_WriteReg(REG_AFE_HSDACCON, tempreg);
 }
 
+
+static void __AD5940_SetDExRTIA(uint32_t DExPin, uint32_t DeRtia, uint32_t DeRload)
+{
+  uint32_t tempreg;
+  /* deal with HSTIA DE RTIA */
+  if(DeRtia >= HSTIADERTIA_OPEN)
+    tempreg = 0x1f << 3;  /* bit field HPTIRES03CON[7:3] */
+  else if(DeRtia >= HSTIADERTIA_1K)
+  {
+    tempreg = (DeRtia - 3 + 11) << 3;
+  }
+  else  /* DERTIA 50/100/200Ohm */
+  {
+    const uint8_t DeRtiaTable[3][5] = 
+    {
+//Rload  0      10    30    50    100 
+			{0x00, 0x01, 0x02, 0x03, 0x06}, /* RTIA 50Ohm */
+			{0x03, 0x04, 0x05, 0x06, 0x07}, /* RTIA 100Ohm */
+			{0x07, 0x07, 0x09, 0x09, 0x0a}, /* RTIA 200Ohm */
+    };
+    if(DeRload < HSTIADERLOAD_OPEN)
+      tempreg = (uint32_t)(DeRtiaTable[DeRtia][DeRload])<<3;
+    else
+      tempreg = (0x1f)<<3;  /* Set it to HSTIADERTIA_OPEN. This setting is illegal */
+  }
+  /* deal with HSTIA Rload */
+  tempreg |= DeRload;
+  if(DExPin) //DE1
+    AD5940_WriteReg(REG_AFE_DE1RESCON, tempreg);
+  else  //DE0
+    AD5940_WriteReg(REG_AFE_DE0RESCON, tempreg);
+}
+
 /**
    @brief Initialize High speed TIA amplifier
    @param pHsTiaCfg: Pointer to configuration structure
@@ -1193,37 +1226,15 @@ AD5940Err AD5940_HSTIACfgS(HSTIACfg_Type *pHsTiaCfg)
   if(pHsTiaCfg->DiodeClose == bTRUE)
     tempreg |= BITM_AFE_HSRTIACON_TIASW6CON; /* Close switch 6 */
   AD5940_WriteReg(REG_AFE_HSRTIACON, tempreg);
-  /* HSTIARES03CON */
-  tempreg = 0;
-  /* deal with HSTIA DE RTIA */
-  if(pHsTiaCfg->HstiaDeRtia >= HSTIADERTIA_OPEN)
-    tempreg = 0x1f << 3;  /* bit field HPTIRES03CON[7:3] */
-  else if(pHsTiaCfg->HstiaDeRtia >= HSTIADERTIA_1K)
-  {
-    tempreg = (pHsTiaCfg->HstiaDeRtia - 3 + 11) << 3;
-  }
-  else  /* DERTIA 50/100/200Ohm */
-  {
-    const uint8_t DeRtiaTable[3][5] = 
-    {
-//Rload  0      10    30    50    100 
-			{0x00, 0x01, 0x02, 0x03, 0x06}, /* RTIA 50Ohm */
-			{0x03, 0x04, 0x05, 0x06, 0x07}, /* RTIA 100Ohm */
-			{0x07, 0x07, 0x09, 0x09, 0x0a}, /* RTIA 200Ohm */
-    };
-    if(pHsTiaCfg->HstiaDeRload < HSTIADERLOAD_OPEN)
-      tempreg = (uint32_t)(DeRtiaTable[pHsTiaCfg->HstiaDeRtia][pHsTiaCfg->HstiaDeRload])<<3;
-    else
-      tempreg = (0x1f)<<3;  /* Set it to HSTIADERTIA_OPEN. This setting is illegal */
-  }
-  /* deal with HSTIA Rload */
-  tempreg |= pHsTiaCfg->HstiaDeRload;
+  /* DExRESCON */
+  __AD5940_SetDExRTIA(0, pHsTiaCfg->HstiaDeRtia, pHsTiaCfg->HstiaDeRload);
+#ifdef CHIPSEL_M355
+  __AD5940_SetDExRTIA(1, pHsTiaCfg->HstiaDe1Rtia, pHsTiaCfg->HstiaDe1Rload);
+#endif
 
-  AD5940_WriteReg(REG_AFE_DE0RESCON, tempreg);
   /* Done */
   return AD5940ERR_OK;
 }
-
 /**
  * @brief Configure HSTIA RTIA resistor and keep other parameters unchanged.
  * @param HSTIARtia: The RTIA setting, select it from @ref HSTIARTIA_Const
@@ -2954,6 +2965,8 @@ AD5940Err AD5940_ADCPGACal(ADCPGACal_Type *pADCPGACal)
   hsloop_cfg.HsTiaCfg.HstiaCtia = 31;
   hsloop_cfg.HsTiaCfg.HstiaDeRload = HSTIADERLOAD_OPEN;
   hsloop_cfg.HsTiaCfg.HstiaDeRtia = HSTIADERTIA_OPEN;
+  hsloop_cfg.HsTiaCfg.HstiaDe1Rload = HSTIADERLOAD_OPEN;
+  hsloop_cfg.HsTiaCfg.HstiaDe1Rtia = HSTIADERTIA_OPEN;
   hsloop_cfg.HsTiaCfg.HstiaRtiaSel = HSTIARTIA_200;
   hsloop_cfg.SWMatCfg.Dswitch = SWD_OPEN;
   hsloop_cfg.SWMatCfg.Pswitch = SWP_PL;
@@ -3566,6 +3579,8 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
   hs_loop.HsTiaCfg.HstiaCtia = 31;
   hs_loop.HsTiaCfg.HstiaDeRload = HSTIADERLOAD_OPEN;
   hs_loop.HsTiaCfg.HstiaDeRtia = HSTIADERTIA_OPEN;
+  hs_loop.HsTiaCfg.HstiaDe1Rload = HSTIADERLOAD_OPEN;
+  hs_loop.HsTiaCfg.HstiaDe1Rtia = HSTIADERTIA_OPEN;
   hs_loop.HsTiaCfg.HstiaRtiaSel = HSTIARTIA_200;
   /* Configure HSDAC */
 	hs_loop.HsDacCfg.ExcitBufGain = 0;
@@ -3902,6 +3917,8 @@ AD5940Err AD5940_HSDACCal(HSDACCal_Type *pCalCfg)
   hsloop_cfg.HsTiaCfg.HstiaCtia = 8;
   hsloop_cfg.HsTiaCfg.HstiaDeRload = HSTIADERLOAD_OPEN;
   hsloop_cfg.HsTiaCfg.HstiaDeRtia = HSTIADERTIA_OPEN;
+  hsloop_cfg.HsTiaCfg.HstiaDe1Rload = HSTIADERLOAD_OPEN;
+  hsloop_cfg.HsTiaCfg.HstiaDe1Rtia = HSTIADERTIA_OPEN;
   hsloop_cfg.HsTiaCfg.HstiaRtiaSel = HSTIARTIA_200;
   hsloop_cfg.SWMatCfg.Dswitch = SWD_RCAL0;
   hsloop_cfg.SWMatCfg.Pswitch = SWP_RCAL0;
