@@ -4323,8 +4323,10 @@ typedef struct
   uint32_t HstiaRtiaSel;      /**< RTIA selection @ref HSTIARTIA_Const */
   uint32_t HstiaCtia;         /**< Set internal CTIA value from 1 to 32 pF */
   BoolFlag DiodeClose;        /**< Close the switch for internal back to back diode */
-  uint32_t HstiaDeRtia;       /**< DE node RTIA selection @ref HSTIADERTIA_Const */
-  uint32_t HstiaDeRload;      /**< DE node Rload selection @ref HSTIADERLOAD_Const */
+  uint32_t HstiaDeRtia;       /**< DE0 node RTIA selection @ref HSTIADERTIA_Const */
+  uint32_t HstiaDeRload;      /**< DE0 node Rload selection @ref HSTIADERLOAD_Const */
+  uint32_t HstiaDe1Rtia;      /**< (ADuCM355 only, ignored on AD594x)DE1 node RTIA selection @ref HSTIADERTIA_Const */
+  uint32_t HstiaDe1Rload;     /**< (ADuCM355 only)DE1 node Rload selection @ref HSTIADERLOAD_Const */
 }HSTIACfg_Type;
 
 /** HSDAC Configure */

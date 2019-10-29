@@ -1169,6 +1169,39 @@ void AD5940_HSDacCfgS(HSDACCfg_Type *pHsDacCfg)
   AD5940_WriteReg(REG_AFE_HSDACCON, tempreg);
 }
 
+
+static void __AD5940_SetDExRTIA(uint32_t DExPin, uint32_t DeRtia, uint32_t DeRload)
+{
+  uint32_t tempreg;
+  /* deal with HSTIA DE RTIA */
+  if(DeRtia >= HSTIADERTIA_OPEN)
+    tempreg = 0x1f << 3;  /* bit field HPTIRES03CON[7:3] */
+  else if(DeRtia >= HSTIADERTIA_1K)
+  {
+    tempreg = (DeRtia - 3 + 11) << 3;
+  }
+  else  /* DERTIA 50/100/200Ohm */
+  {
+    const uint8_t DeRtiaTable[3][5] = 
+    {
+//Rload  0      10    30    50    100 
+			{0x00, 0x01, 0x02, 0x03, 0x06}, /* RTIA 50Ohm */
+			{0x03, 0x04, 0x05, 0x06, 0x07}, /* RTIA 100Ohm */
+			{0x07, 0x07, 0x09, 0x09, 0x0a}, /* RTIA 200Ohm */
+    };
+    if(DeRload < HSTIADERLOAD_OPEN)
+      tempreg = (uint32_t)(DeRtiaTable[DeRtia][DeRload])<<3;
+    else
+      tempreg = (0x1f)<<3;  /* Set it to HSTIADERTIA_OPEN. This setting is illegal */
+  }
+  /* deal with HSTIA Rload */
+  tempreg |= DeRload;
+  if(DExPin) //DE1
+    AD5940_WriteReg(REG_AFE_DE1RESCON, tempreg);
+  else  //DE0
+    AD5940_WriteReg(REG_AFE_DE0RESCON, tempreg);
+}
+
 /**
    @brief Initialize High speed TIA amplifier
    @param pHsTiaCfg: Pointer to configuration structure
@@ -1198,37 +1231,15 @@ AD5940Err AD5940_HSTIACfgS(HSTIACfg_Type *pHsTiaCfg)
   if(pHsTiaCfg->DiodeClose == bTRUE)
     tempreg |= BITM_AFE_HSRTIACON_TIASW6CON; /* Close switch 6 */
   AD5940_WriteReg(REG_AFE_HSRTIACON, tempreg);
-  /* HSTIARES03CON */
-  tempreg = 0;
-  /* deal with HSTIA DE RTIA */
-  if(pHsTiaCfg->HstiaDeRtia >= HSTIADERTIA_OPEN)
-    tempreg = 0x1f << 3;  /* bit field HPTIRES03CON[7:3] */
-  else if(pHsTiaCfg->HstiaDeRtia >= HSTIADERTIA_1K)
-  {
-    tempreg = (pHsTiaCfg->HstiaDeRtia - 3 + 11) << 3;
-  }
-  else  /* DERTIA 50/100/200Ohm */
-  {
-    const uint8_t DeRtiaTable[3][5] = 
-    {
-//Rload  0      10    30    50    100 
-			{0x00, 0x01, 0x02, 0x03, 0x06}, /* RTIA 50Ohm */
-			{0x03, 0x04, 0x05, 0x06, 0x07}, /* RTIA 100Ohm */
-			{0x07, 0x07, 0x09, 0x09, 0x0a}, /* RTIA 200Ohm */
-    };
-    if(pHsTiaCfg->HstiaDeRload < HSTIADERLOAD_OPEN)
-      tempreg = (uint32_t)(DeRtiaTable[pHsTiaCfg->HstiaDeRtia][pHsTiaCfg->HstiaDeRload])<<3;
-    else
-      tempreg = (0x1f)<<3;  /* Set it to HSTIADERTIA_OPEN. This setting is illegal */
-  }
-  /* deal with HSTIA Rload */
-  tempreg |= pHsTiaCfg->HstiaDeRload;
+  /* DExRESCON */
+  __AD5940_SetDExRTIA(0, pHsTiaCfg->HstiaDeRtia, pHsTiaCfg->HstiaDeRload);
+#ifdef CHIPSEL_M355
+  __AD5940_SetDExRTIA(1, pHsTiaCfg->HstiaDe1Rtia, pHsTiaCfg->HstiaDe1Rload);
+#endif
 
-  AD5940_WriteReg(REG_AFE_DE0RESCON, tempreg);
   /* Done */
   return AD5940ERR_OK;
 }
-
 /**
  * @brief Configure HSTIA RTIA resistor and keep other parameters unchanged.
  * @param HSTIARtia: The RTIA setting, select it from @ref HSTIARTIA_Const
@@ -1508,7 +1519,7 @@ void AD5940_DSPCfgS(DSPCfg_Type *pDSPCfg)
 uint32_t AD5940_ReadAfeResult(uint32_t AfeResultSel)
 {
   uint32_t rd = 0;
-  //PARA_CHECK((AfeResultSel)); ///@todo add parameter check
+  //PARA_CHECK((AfeResultSel));
   switch (AfeResultSel)
   {
     case AFERESULT_SINC3:
@@ -1551,7 +1562,7 @@ void AD5940_ADCBaseCfgS(ADCBaseCfg_Type *pADCInit)
 {
   uint32_t tempreg = 0;
   //PARA_CHECK(IS_ADCMUXP(pADCInit->ADCMuxP));
-  //PARA_CHECK(IS_ADCMUXN(pADCInit->ADCMuxN)); ///@todo add parameter check
+  //PARA_CHECK(IS_ADCMUXN(pADCInit->ADCMuxN));
   PARA_CHECK(IS_ADCPGA(pADCInit->ADCPga));
   PARA_CHECK(IS_ADCAAF(pADCInit->ADCAAF));
 
@@ -1669,7 +1680,7 @@ void AD5940_ADCMuxCfgS(uint32_t ADCMuxP, uint32_t ADCMuxN)
 {
   uint32_t tempreg;
   //PARA_CHECK(IS_ADCMUXP(ADCMuxP));
-  //PARA_CHECK(IS_ADCMUXN(ADCMuxN)); ///@todo add parameter check
+  //PARA_CHECK(IS_ADCMUXN(ADCMuxN));
   
   tempreg = AD5940_ReadReg(REG_AFE_ADCCON);
   tempreg &= ~(BITM_AFE_ADCCON_MUXSELN|BITM_AFE_ADCCON_MUXSELP);
@@ -1685,7 +1696,7 @@ void AD5940_ADCMuxCfgS(uint32_t ADCMuxP, uint32_t ADCMuxN)
 */
 void AD5940_ADCDigCompCfgS(ADCDigComp_Type *pCompCfg)
 {
-  //PARA_CHECK((AfeResultSel)); ///@todo add parameter check
+  //PARA_CHECK((AfeResultSel));
   AD5940_WriteReg(REG_AFE_ADCMIN, pCompCfg->ADCMin);
   AD5940_WriteReg(REG_AFE_ADCMINSM, pCompCfg->ADCMinHys);
   AD5940_WriteReg(REG_AFE_ADCMAX, pCompCfg->ADCMax);
@@ -1851,7 +1862,6 @@ void AD5940_FIFOCtrlS(uint32_t FifoSrc, BoolFlag FifoEn)
 */
 void AD5940_FIFOThrshSet(uint32_t FIFOThresh)
 {
-  /* @todo add parameter check */
   /* FIFO Threshold */
   AD5940_WriteReg(REG_AFE_DATAFIFOTHRES, FIFOThresh << BITP_AFE_DATAFIFOTHRES_HIGHTHRES);
 }
@@ -1900,29 +1910,10 @@ void AD5940_SEQCfg(SEQCfg_Type *pSeqCfg)
 
   // tempreg = 0;
   // if(pSeqCfg->SeqBreakEn)
-  //   tempreg |= 0x01;  ///@todo add register definition? bitm_afe_
+  //   tempreg |= 0x01;  // add register definition? bitm_afe_
   // if(pSeqCfg->SeqIgnoreEn)
   //   tempreg |= 0x02;  
   // AD5940_WriteReg(0x21dc, tempreg);
-
-  // if(pSeqCfg->SeqSleepEn == bTRUE)
-  // {
-  //   /* Two conditions for allowing sequencer to trigger sleep */
-  //   /* 1. Enable it in PWRMOD register */
-  //   AD5940_WriteReg(REG_ALLON_PWRKEY,0x4859);
-  //   AD5940_WriteReg(REG_ALLON_PWRKEY,0xF27B);
-  //   tempreg = AD5940_ReadReg(REG_ALLON_PWRMOD);
-  //   tempreg |= BITM_ALLON_PWRMOD_SEQSLPEN;
-  //   AD5940_WriteReg(REG_ALLON_PWRMOD,tempreg);
-  //   /* 2. Write trigger key */
-  //   AD5940_WriteReg(REG_AFE_SEQSLPLOCK, KEY_SEQSLPTRIG);
-  //   /* If there is need to trigger sleep, write register SEQTRGSLP */
-  // }
-  // else
-  // {
-  //   /* Write a wrong key will prevent sequencer to trigger sleep */
-  //   AD5940_WriteReg(REG_AFE_SEQSLPLOCK, 0);
-  // }
 }
 /**
  * @brief Read back current sequencer configuration and store it to pSeqCfg
@@ -2979,6 +2970,8 @@ AD5940Err AD5940_ADCPGACal(ADCPGACal_Type *pADCPGACal)
   hsloop_cfg.HsTiaCfg.HstiaCtia = 31;
   hsloop_cfg.HsTiaCfg.HstiaDeRload = HSTIADERLOAD_OPEN;
   hsloop_cfg.HsTiaCfg.HstiaDeRtia = HSTIADERTIA_OPEN;
+  hsloop_cfg.HsTiaCfg.HstiaDe1Rload = HSTIADERLOAD_OPEN;
+  hsloop_cfg.HsTiaCfg.HstiaDe1Rtia = HSTIADERTIA_OPEN;
   hsloop_cfg.HsTiaCfg.HstiaRtiaSel = HSTIARTIA_200;
   hsloop_cfg.SWMatCfg.Dswitch = SWD_OPEN;
   hsloop_cfg.SWMatCfg.Pswitch = SWP_PL;
@@ -3439,333 +3432,6 @@ AD5940Err AD5940_HSRtiaCal(HSRTIACal_Type *pCalCfg, void *pResult)
 }
 
 /**
- * @brief Measure LPTIA internal RTIA impedance with HSDAC and HSloop.
- * @param pCalCfg: pointer to calibration structure.
- * @param pResult:  Pointer to a variable that used to store result. 
- *                  If bPolarResult in structure is set, then use type fImpPol_Type otherwise use fImpCar_Type. 
- * @return AD5940ERR_OK if succeed.
-**/
-AD5940Err AD5940_LPRtiaCal_HSDAC(LPRTIACal_Type *pCalCfg, void *pResult)
-{
-  AFERefCfg_Type aferef_cfg;
-  HSLoopCfg_Type hs_loop;
-  LPLoopCfg_Type lp_loop;
-  DSPCfg_Type dsp_cfg;
-  uint32_t INTCCfg, reg_afecon;
-
-  BoolFlag bADCClk32MHzMode = bFALSE;
-  BoolFlag bDCMode = bFALSE;                /* Indicate if frequency is 0, which means we calibrate at DC. */
-  uint32_t ExcitBuffGain = EXCITBUFGAIN_2;
-  uint32_t HsDacGain = HSDACGAIN_1;
-
-  float ExcitVolt; /* Excitation voltage, unit is mV */
-  uint32_t RtiaVal;
-  /* RTIA value table when RLOAD set to 100Ohm */
-  uint32_t const LpRtiaTable[]={0,200,1000,2000,3000,4000,6000,8000,10000,12000,16000,20000,24000,30000,32000,40000,48000,64000,85000,96000,100000,120000,128000,160000,196000,256000,512000};
-  uint32_t WgAmpWord;
-
-  iImpCar_Type DftRcal, DftRtia;
-
-  if(pCalCfg == NULL)  return AD5940ERR_NULLP;  /* Parameters illegal */
-  
-  if(pCalCfg->fRcal == 0)
-    return AD5940ERR_PARA;
-  if(pCalCfg->LpTiaRtia > LPTIARTIA_512K)
-    return AD5940ERR_PARA;
-  if(pCalCfg->LpTiaRtia == LPTIARTIA_OPEN)
-    return AD5940ERR_PARA; /* Not supported now. By setting RTIA to open and set corresponding switches can calibrate external RTIA */
-  if(pResult == NULL)
-      return AD5940ERR_NULLP;
-
-  if(pCalCfg->AdcClkFreq > (32000000*0.8))
-    bADCClk32MHzMode = bTRUE;   /* Clock frequency is high. */
-  if(pCalCfg->fFreq == 0.0f)    /* Frequency is zero means we calibrate RTIA at DC. */
-    bDCMode = bTRUE;
-
-  /* Calculate the excitation voltage we should use based on RCAL/Rtia */
-  RtiaVal = LpRtiaTable[pCalCfg->LpTiaRtia];
-  /*
-    DAC output voltage calculation
-    Note: RCAL value should be similar to RTIA so the accuracy is best.
-    LPTIA output voltage should be limited to 0.2V to AVDD-0.2V, with 1.35V bias. We use 80% of this range for safe. 
-    That's 2.3Vpp*80%@2.7V AVDD
-    Formula is:    ExcitVolt(in mVpp) = (2300mVpp*80% / RTIA) * RCAL
-    ADC input range is +-1.5V which is enough for calibration.
-    
-  */
-  ExcitVolt = 2300*0.8*pCalCfg->fRcal/RtiaVal;
-
-  if(ExcitVolt <= 800*0.05) /* Voltage is so small that we can enable the attenuator of DAC(1/5) and Excitation buffer(1/4). 800mVpp is the DAC output voltage */
-  {
-    ExcitBuffGain = EXCITBUFGAIN_0P25;
-    HsDacGain = HSDACGAIN_0P2;
-    /* Excitation buffer voltage full range is 800mVpp*0.05 = 40mVpp */
-    WgAmpWord = ((uint32_t)(ExcitVolt/40*2047*2)+1)>>1; /* Assign value with rounding (0.5 LSB error). ((int)(x*2)+1)/2 */
-  }
-  else if(ExcitVolt <= 800*0.25) /* Enable Excitation buffer attenuator */
-  {
-    ExcitBuffGain = EXCITBUFGAIN_0P25;
-    HsDacGain = HSDACGAIN_1;
-    /* Excitation buffer voltage full range is 800mVpp*0.25 = 200mVpp */
-    WgAmpWord = ((uint32_t)(ExcitVolt/200*2047*2)+1)>>1; /* Assign value with rounding (0.5 LSB error) */
-  }
-  else if(ExcitVolt <= 800*0.4) /* Enable DAC attenuator */
-  {
-    ExcitBuffGain = EXCITBUFGAIN_2;
-    HsDacGain = HSDACGAIN_0P2;
-    /* Excitation buffer voltage full range is 800mVpp*0.4 = 320mV */
-    WgAmpWord = ((uint32_t)(ExcitVolt/320*2047*2)+1)>>1; /* Assign value with rounding (0.5 LSB error) */
-  }
-  else /* No attenuator is needed. This is the best condition which means RTIA is close to RCAL */
-  {
-    ExcitBuffGain = EXCITBUFGAIN_2;
-    HsDacGain = HSDACGAIN_1;
-    /* Excitation buffer voltage full range is 800mVpp*2=1600mVpp */
-    WgAmpWord = ((uint32_t)(ExcitVolt/1600*2047*2)+1)>>1; /* Assign value with rounding (0.5 LSB error) */
-  }
-
-  if(WgAmpWord > 0x7ff)
-  WgAmpWord = 0x7ff;
-
-  reg_afecon = AD5940_ReadReg(REG_AFE_AFECON);
-  /*INTC configuration */
-  INTCCfg = AD5940_INTCGetCfg(AFEINTC_1);
-  AD5940_INTCCfg(AFEINTC_1, AFEINTSRC_DFTRDY, bTRUE); /* Enable SINC2 Interrupt in INTC1 */
-  
-  AD5940_AFECtrlS(AFECTRL_ALL, bFALSE);  /* Init all to disable state */
-  /* Configure reference system */
-  AD5940_StructInit(&aferef_cfg, sizeof(aferef_cfg));
-  aferef_cfg.HpBandgapEn = bTRUE;
-  aferef_cfg.Hp1V1BuffEn = bTRUE;
-  aferef_cfg.Hp1V8BuffEn = bTRUE;
-  aferef_cfg.LpBandgapEn = bTRUE;
-  aferef_cfg.LpRefBufEn = bTRUE;
-  AD5940_REFCfgS(&aferef_cfg);	
-  /* Configure LP Loop */
-  AD5940_StructInit(&lp_loop, sizeof(lp_loop));
-  /* Configure LP Amplifies(LPPA and LPTIA). We won't use LP-PA */
-  //memcpy(&lp_loop.LpAmpCfg, &pCalCfg->LpAmpCfg, sizeof(pCalCfg->LpAmpCfg));
-  lp_loop.LpDacCfg.LpdacSel = LPDAC0;
-  lp_loop.LpAmpCfg.LpAmpSel = LPAMP0;
-  lp_loop.LpAmpCfg.LpAmpPwrMod = pCalCfg->LpAmpPwrMod;
-  lp_loop.LpAmpCfg.LpPaPwrEn = bTRUE;
-  lp_loop.LpAmpCfg.LpTiaPwrEn = bTRUE;
-  lp_loop.LpAmpCfg.LpTiaRf = LPTIARF_OPEN;
-  lp_loop.LpAmpCfg.LpTiaRload = LPTIARLOAD_100R;
-  lp_loop.LpAmpCfg.LpTiaRtia = pCalCfg->LpTiaRtia;
-  lp_loop.LpAmpCfg.LpTiaSW = /*LPTIASW(13)|*/(pCalCfg->bWithCtia==bTRUE?LPTIASW(5)/*|LPTIASW(9)*/:0);
-  lp_loop.LpDacCfg.DacData12Bit = 0x800;  /* Set it to middle scale. */
-  lp_loop.LpDacCfg.DacData6Bit = 32;      /* Set it to middle scale. */
-  lp_loop.LpDacCfg.DataRst = bFALSE;      /* Do not reset data register */
-  lp_loop.LpDacCfg.LpDacSW = LPDACSW_VBIAS2LPPA|LPDACSW_VBIAS2PIN|LPDACSW_VZERO2LPTIA|LPDACSW_VZERO2PIN;
-  lp_loop.LpDacCfg.LpDacRef = LPDACREF_2P5;
-  lp_loop.LpDacCfg.LpDacSrc = LPDACSRC_MMR;     /* Use MMR data, we use LPDAC to generate bias voltage for LPTIA - the Vzero */
-  lp_loop.LpDacCfg.LpDacVbiasMux = LPDACVBIAS_12BIT;
-  lp_loop.LpDacCfg.LpDacVzeroMux = LPDACVZERO_6BIT;  /* Use 12bit DAC output data */
-  lp_loop.LpDacCfg.PowerEn = bTRUE;       /* Power up LPDAC */
-  AD5940_LPLoopCfgS(&lp_loop);
-  /* Configure HP Loop */
-  AD5940_StructInit(&hs_loop, sizeof(hs_loop));
-  /* Take care of HSTIA, we need to disconnect internal RTIA because it connects to Tswitch directly. */
-  hs_loop.HsTiaCfg.HstiaDeRload = HSTIADERLOAD_OPEN;
-  hs_loop.HsTiaCfg.HstiaDeRtia = HSTIADERTIA_OPEN;
-  hs_loop.HsTiaCfg.HstiaRtiaSel = HSTIARTIA_OPEN;
-  /* Configure HSDAC */
-  hs_loop.HsDacCfg.ExcitBufGain = ExcitBuffGain;
-  hs_loop.HsDacCfg.HsDacGain = HsDacGain;
-  hs_loop.HsDacCfg.HsDacUpdateRate = 27;
-  hs_loop.SWMatCfg.Dswitch = SWD_RCAL0;
-  hs_loop.SWMatCfg.Pswitch = SWP_RCAL0;
-  hs_loop.SWMatCfg.Nswitch = SWN_RCAL1;
-  hs_loop.SWMatCfg.Tswitch = SWT_RCAL1|SWT_SE0LOAD; /* Let current flow to SE0, then to RTIA of LPTIA */
-  /* Configure HSDAC */
-  if(bDCMode)
-  {// need calibrate ADC/LPTIA offset firstly.
-    hs_loop.WgCfg.WgType = WGTYPE_MMR;
-    hs_loop.WgCfg.WgCode = WgAmpWord;   /* Amplitude word is exactly the maximum DC voltage we could use */
-    hs_loop.WgCfg.GainCalEn = bTRUE;
-    hs_loop.WgCfg.OffsetCalEn = bTRUE;
-    AD5940_HSLoopCfgS(&hs_loop);
-
-    /* Configure DSP */
-    AD5940_StructInit(&dsp_cfg, sizeof(dsp_cfg));
-    dsp_cfg.ADCBaseCfg.ADCMuxN = ADCMUXN_N_NODE;
-    dsp_cfg.ADCBaseCfg.ADCMuxP = ADCMUXP_P_NODE;
-    dsp_cfg.ADCBaseCfg.ADCPga = ADCPGA_1P5;
-    dsp_cfg.ADCFilterCfg.ADCAvgNum = ADCAVGNUM_16;  /* Don't care because it's disabled */
-    dsp_cfg.ADCFilterCfg.ADCRate = bADCClk32MHzMode?ADCRATE_1P6MHZ:ADCRATE_800KHZ;
-    dsp_cfg.ADCFilterCfg.ADCSinc2Osr = pCalCfg->ADCSinc2Osr;
-    dsp_cfg.ADCFilterCfg.ADCSinc3Osr = pCalCfg->ADCSinc3Osr;
-    dsp_cfg.ADCFilterCfg.BpNotch = bTRUE;
-    dsp_cfg.ADCFilterCfg.BpSinc3 = bFALSE;
-    dsp_cfg.ADCFilterCfg.DFTClkEnable = bTRUE;
-    dsp_cfg.ADCFilterCfg.Sinc2NotchClkEnable = bTRUE;
-    dsp_cfg.ADCFilterCfg.Sinc2NotchEnable = bTRUE;
-    dsp_cfg.ADCFilterCfg.Sinc3ClkEnable = bTRUE;
-    dsp_cfg.ADCFilterCfg.WGClkEnable = bTRUE;
-    AD5940_DSPCfgS(&dsp_cfg);
-    AD5940_INTCClrFlag(AFEINTSRC_SINC2RDY);
-    AD5940_AFECtrlS(AFECTRL_INAMPPWR|AFECTRL_EXTBUFPWR|AFECTRL_DACREFPWR|AFECTRL_HSDACPWR|AFECTRL_SINC2NOTCH, bTRUE);
-    AD5940_AFECtrlS(AFECTRL_WG|AFECTRL_ADCPWR, bTRUE);  /* Enable Waveform generator, ADC power */
-    AD5940_Delay10us(25); //wait 250us.
-    AD5940_AFECtrlS(AFECTRL_ADCCNV, bTRUE);  /* Start ADC convert and DFT */
-    /* Wait until DFT ready */
-    while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_SINC2RDY) == bFALSE);  
-    AD5940_AFECtrlS(AFECTRL_ADCCNV|AFECTRL_WG|AFECTRL_ADCPWR, bFALSE);  /* Stop ADC convert and DFT */
-    AD5940_INTCClrFlag(AFEINTSRC_SINC2RDY);
-    DftRcal.Real = (int32_t)AD5940_ReadAfeResult(AFERESULT_SINC2) - 32768;
-    DftRcal.Image = 0;
-
-    AD5940_ADCMuxCfgS(ADCMUXP_LPTIA0_P, ADCMUXN_LPTIA0_N);
-    AD5940_AFECtrlS(AFECTRL_WG|AFECTRL_ADCPWR, bTRUE);  /* Enable Waveform generator, ADC power */
-    //wait for sometime.
-    AD5940_AFECtrlS(AFECTRL_ADCCNV, bTRUE);  /* Start ADC convert and DFT */
-    /* Wait until DFT ready */
-    while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_SINC2RDY) == bFALSE);  
-    AD5940_AFECtrlS(AFECTRL_ADCCNV|AFECTRL_WG|AFECTRL_ADCPWR, bFALSE);  /* Stop ADC convert and DFT */
-    AD5940_INTCClrFlag(AFEINTSRC_SINC2RDY);
-
-    DftRtia.Real = (int32_t)AD5940_ReadAfeResult(AFERESULT_SINC2) - 32768;
-    DftRtia.Image = 0;
-  }
-  else
-  {
-    SEQCfg_Type seq_cfg, seq_cfg_backup;  /* Use sequencer to measure */
-    SEQInfo_Type seqinfo;
-    uint32_t SeqTakeMeasurment[3] = 
-    {
-      SEQ_WR(REG_AFE_AFECON, 0x001146c0), /* WG and ADC ON */
-      SEQ_WAIT(250*16),
-      SEQ_WR(REG_AFE_AFECON, 0x0011c7c0), /* ADCCNV and DFT ON */
-    };
-    hs_loop.WgCfg.WgType = WGTYPE_SIN;
-    hs_loop.WgCfg.SinCfg.SinFreqWord = AD5940_WGFreqWordCal(pCalCfg->fFreq, pCalCfg->SysClkFreq);
-    hs_loop.WgCfg.SinCfg.SinAmplitudeWord = WgAmpWord;
-    hs_loop.WgCfg.SinCfg.SinOffsetWord = 0;
-    hs_loop.WgCfg.SinCfg.SinPhaseWord = 0;
-    hs_loop.WgCfg.GainCalEn = bTRUE;
-    hs_loop.WgCfg.OffsetCalEn = bTRUE;
-    AD5940_HSLoopCfgS(&hs_loop);
-
-    /* Configure DSP */
-    AD5940_StructInit(&dsp_cfg, sizeof(dsp_cfg));
-    dsp_cfg.ADCBaseCfg.ADCMuxN = ADCMUXN_N_NODE;
-    dsp_cfg.ADCBaseCfg.ADCMuxP = ADCMUXP_P_NODE;
-    dsp_cfg.ADCBaseCfg.ADCPga = ADCPGA_1P5;
-    dsp_cfg.ADCFilterCfg.ADCAvgNum = ADCAVGNUM_16;  /* Don't care because it's disabled */
-    dsp_cfg.ADCFilterCfg.ADCRate = bADCClk32MHzMode?ADCRATE_1P6MHZ:ADCRATE_800KHZ;
-    dsp_cfg.ADCFilterCfg.ADCSinc2Osr = pCalCfg->ADCSinc2Osr;
-    dsp_cfg.ADCFilterCfg.ADCSinc3Osr = pCalCfg->ADCSinc3Osr;
-    dsp_cfg.ADCFilterCfg.BpNotch = bTRUE;
-    dsp_cfg.ADCFilterCfg.BpSinc3 = bFALSE;
-    dsp_cfg.ADCFilterCfg.DFTClkEnable = bTRUE;
-    dsp_cfg.ADCFilterCfg.Sinc2NotchClkEnable = bTRUE;
-    dsp_cfg.ADCFilterCfg.Sinc2NotchEnable = bTRUE;
-    dsp_cfg.ADCFilterCfg.Sinc3ClkEnable = bTRUE;
-    dsp_cfg.ADCFilterCfg.WGClkEnable = bTRUE;
-    memcpy(&dsp_cfg.DftCfg, &pCalCfg->DftCfg, sizeof(pCalCfg->DftCfg));
-    AD5940_DSPCfgS(&dsp_cfg);
-    AD5940_INTCClrFlag(AFEINTSRC_DFTRDY);
-    /* Configure sequencer, we use sequencer to control WG and DFT to ensure phase accuracy */
-    AD5940_SEQGetCfg(&seq_cfg_backup);
-    seq_cfg.SeqMemSize = SEQMEMSIZE_2KB;  /* 2kB SRAM is used for sequencer */
-    seq_cfg.SeqBreakEn = bFALSE;
-    seq_cfg.SeqIgnoreEn = bFALSE;
-    seq_cfg.SeqCntCRCClr = bFALSE;
-    seq_cfg.SeqEnable = bTRUE;
-    seq_cfg.SeqWrTimer = 0;
-    AD5940_SEQCfg(&seq_cfg);          /* Enable sequencer */
-    seqinfo.pSeqCmd = SeqTakeMeasurment;
-    seqinfo.SeqId = SEQID_3;
-    seqinfo.SeqLen = SEQ_LEN(SeqTakeMeasurment);
-    seqinfo.SeqRamAddr = 0;           /* */
-    seqinfo.WriteSRAM = bTRUE;
-    AD5940_SEQInfoCfg(&seqinfo); 
-
-    AD5940_AFECtrlS(AFECTRL_INAMPPWR|AFECTRL_EXTBUFPWR|AFECTRL_DACREFPWR|AFECTRL_HSDACPWR|AFECTRL_SINC2NOTCH, bTRUE);
-    /* Wait until DFT ready */
-    AD5940_SEQMmrTrig(SEQID_3);
-    while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_DFTRDY) == bFALSE);  
-    AD5940_AFECtrlS(AFECTRL_ADCCNV|AFECTRL_DFT|AFECTRL_WG|AFECTRL_ADCPWR, bFALSE);  /* Stop ADC convert and DFT */
-    AD5940_INTCClrFlag(AFEINTSRC_DFTRDY);
-    DftRcal.Real = AD5940_ReadAfeResult(AFERESULT_DFTREAL);
-    DftRcal.Image = AD5940_ReadAfeResult(AFERESULT_DFTIMAGE);
-
-    AD5940_ADCMuxCfgS(ADCMUXP_LPTIA0_P, ADCMUXN_LPTIA0_N);
-    AD5940_SEQMmrTrig(SEQID_3);
-    /* Wait until DFT ready */
-    while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_DFTRDY) == bFALSE);  
-    AD5940_AFECtrlS(AFECTRL_ADCCNV|AFECTRL_DFT|AFECTRL_WG|AFECTRL_ADCPWR, bFALSE);  /* Stop ADC convert and DFT */
-    AD5940_INTCClrFlag(AFEINTSRC_DFTRDY);
-
-    DftRtia.Real = AD5940_ReadAfeResult(AFERESULT_DFTREAL);
-    DftRtia.Image = AD5940_ReadAfeResult(AFERESULT_DFTIMAGE);
-    
-    if(DftRcal.Real&(1L<<17))
-      DftRcal.Real |= 0xfffc0000;
-    if(DftRcal.Image&(1L<<17))
-      DftRcal.Image |= 0xfffc0000;
-    if(DftRtia.Real&(1L<<17))
-      DftRtia.Real |= 0xfffc0000;
-    if(DftRtia.Image&(1L<<17))
-      DftRtia.Image |= 0xfffc0000;
-  }
-  
-  /*
-    ADC MUX is set to LPTIA_P and LPTIA_N.
-    While the current flow through RCAL and then into RTIA, the current direction should be from LPTIA_N to LPTIA_P if we 
-    measure the voltage across RCAL by MUXSELP_P_NODE and MUXSELN_N_NODE.
-    So here, we add a negative sign to results
-  */
-  DftRtia.Image = -DftRtia.Image;
-  DftRtia.Real = -DftRtia.Real; /*  */
-  /*
-      The impedance engine inside of AD594x give us Real part and Imaginary part of DFT. Due to technology used, the Imaginary 
-      part in register is the opposite number. So we add a negative sign on the Imaginary part of results. 
-  */
-  DftRtia.Image = -DftRtia.Image;
-  DftRcal.Image = -DftRcal.Image;
-
-  if(pCalCfg->bPolarResult == bFALSE)
-  {
-    fImpCar_Type res;
-    /* RTIA = (DftRtia.Real, DftRtia.Image)/(DftRcal.Real, DftRcal.Image)*fRcal */
-    res = AD5940_ComplexDivInt(&DftRtia, &DftRcal);
-    res.Real *= pCalCfg->fRcal;
-    res.Image *= pCalCfg->fRcal;
-    ((fImpCar_Type*)pResult)->Real = res.Real;
-    ((fImpCar_Type*)pResult)->Image = res.Image;
-  }
-  else
-  {
-    float RcalMag,RtiaMag,RtiaPhase;
-    RcalMag = sqrt((float)DftRcal.Real*DftRcal.Real+(float)DftRcal.Image*DftRcal.Image);
-    RtiaMag = sqrt((float)DftRtia.Real*DftRtia.Real+(float)DftRtia.Image*DftRtia.Image);
-    RtiaMag = (RtiaMag/RcalMag)*pCalCfg->fRcal;
-    RtiaPhase = atan2(DftRtia.Image,DftRtia.Real) - atan2(DftRcal.Image,DftRcal.Real);
-
-    ((fImpPol_Type*)pResult)->Magnitude = RtiaMag;
-    ((fImpPol_Type*)pResult)->Phase = RtiaPhase;
-    //printf("RTIA mag:%f,",RtiaMag);
-    //printf("phase:%f\n",RtiaPhase*180/MATH_PI);
-  }
-    
-  /* Restore INTC1 DFT configure */
-  if(INTCCfg&AFEINTSRC_DFTRDY);
-  else
-    AD5940_INTCCfg(AFEINTC_1, AFEINTSRC_DFTRDY, bFALSE);  /* Disable DFT Interrupt */
-  AD5940_WriteReg(REG_AFE_AFECON, reg_afecon);            /* Restore AFECON register */
-  /* Open all switches in switch-matrix */
-  hs_loop.SWMatCfg.Dswitch = SWD_OPEN;
-  hs_loop.SWMatCfg.Pswitch = SWP_OPEN;
-  hs_loop.SWMatCfg.Nswitch = SWN_OPEN;
-  hs_loop.SWMatCfg.Tswitch = SWT_OPEN;
-  AD5940_SWMatrixCfgS(&hs_loop.SWMatCfg);
-  
-  return AD5940ERR_OK;
-}
-
-/**
  * @brief Measure LPTIA internal RTIA impedance with HSTIA. This is the recommended method for LPTIA RTIA calibration.
  * @param pCalCfg: pointer to calibration structure.
  * @param pResult:  Pointer to a variable that used to store result. 
@@ -3918,6 +3584,8 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
   hs_loop.HsTiaCfg.HstiaCtia = 31;
   hs_loop.HsTiaCfg.HstiaDeRload = HSTIADERLOAD_OPEN;
   hs_loop.HsTiaCfg.HstiaDeRtia = HSTIADERTIA_OPEN;
+  hs_loop.HsTiaCfg.HstiaDe1Rload = HSTIADERLOAD_OPEN;
+  hs_loop.HsTiaCfg.HstiaDe1Rtia = HSTIADERTIA_OPEN;
   hs_loop.HsTiaCfg.HstiaRtiaSel = HSTIARTIA_200;
   /* Configure HSDAC */
 	hs_loop.HsDacCfg.ExcitBufGain = 0;
@@ -4254,6 +3922,8 @@ AD5940Err AD5940_HSDACCal(HSDACCal_Type *pCalCfg)
   hsloop_cfg.HsTiaCfg.HstiaCtia = 8;
   hsloop_cfg.HsTiaCfg.HstiaDeRload = HSTIADERLOAD_OPEN;
   hsloop_cfg.HsTiaCfg.HstiaDeRtia = HSTIADERTIA_OPEN;
+  hsloop_cfg.HsTiaCfg.HstiaDe1Rload = HSTIADERLOAD_OPEN;
+  hsloop_cfg.HsTiaCfg.HstiaDe1Rtia = HSTIADERTIA_OPEN;
   hsloop_cfg.HsTiaCfg.HstiaRtiaSel = HSTIARTIA_200;
   hsloop_cfg.SWMatCfg.Dswitch = SWD_RCAL0;
   hsloop_cfg.SWMatCfg.Pswitch = SWP_RCAL0;
