@@ -904,6 +904,11 @@ void AD5940_Initialize(void)
     {0x22B0, 0x203C},
     {0x2230, 0xDE87A5A0},
   };
+  //initialize global variables
+  SeqGenDB.SeqLen = 0;
+  SeqGenDB.RegCount = 0;
+  SeqGenDB.LastError = AD5940ERR_OK;
+  SeqGenDB.EngineStart = bFALSE;
 #ifndef CHIPSEL_M355
   AD5940_CsSet(); /* Pull high CS in case it's low */
 #endif
@@ -3999,7 +4004,7 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
   {
     SEQCfg_Type seq_cfg, seq_cfg_backup;  /* Use sequencer to measure */
     SEQInfo_Type seqinfo, seqinfo_backup;
-    uint32_t SeqTakeMeasurment[3] = 
+    const uint32_t SeqTakeMeasurment[3] = 
     {
       SEQ_WR(REG_AFE_AFECON, 0x00014c80), /* WG and ADC ON */
       SEQ_WAIT(250*16),
