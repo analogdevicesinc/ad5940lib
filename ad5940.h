@@ -4257,7 +4257,7 @@ typedef struct
 {
   uint32_t ADCSinc3Osr;
   uint32_t ADCSinc2Osr;
-  uint32_t ADCAvgNum;
+  uint32_t ADCAvgNum;           /**< Average filter is enabled when DFT source is @ref DFTSRC_AVG in function @ref AD5940_DFTCfgS. This average filter is only used by DFT engine. */
   uint32_t ADCRate;             /**< ADC Core sample rate */
   BoolFlag BpNotch;             /**< Bypass Notch filter in SINC2+Notch block, so only SINC2 is used. ADCFILTERCON.BIT4 */
   BoolFlag BpSinc3;             /**< Bypass SINC3 Module */

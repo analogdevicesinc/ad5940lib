@@ -1588,7 +1588,7 @@ void AD5940_ADCFilterCfgS(ADCFilterCfg_Type *pFiltCfg)
   PARA_CHECK(IS_ADCAVGNUM(pFiltCfg->ADCAvgNum));
   PARA_CHECK(IS_ADCRATE(pFiltCfg->ADCRate));
 
-  tempreg = AD5940_ReadReg(REG_AFE_ADCFILTERCON)&0x1fff;	//only bit0-bit13 is valid
+  tempreg = AD5940_ReadReg(REG_AFE_ADCFILTERCON);
   tempreg &= BITM_AFE_ADCFILTERCON_AVRGEN; /* Keep this bit setting. */
 
   tempreg |= pFiltCfg->ADCRate;
@@ -1596,6 +1596,10 @@ void AD5940_ADCFilterCfgS(ADCFilterCfg_Type *pFiltCfg)
     tempreg |= BITM_AFE_ADCFILTERCON_LPFBYPEN;
   if(pFiltCfg->BpSinc3 == bTRUE)
     tempreg |= BITM_AFE_ADCFILTERCON_SINC3BYP;
+  /**
+   * Average filter is enabled when DFT source is @ref DFTSRC_AVG in function @ref AD5940_DFTCfgS.
+   * Once average function is enabled, it's automatically set as DFT source, register DFTCON.DFTINSEL is ignored.
+   */
   //if(pFiltCfg->AverageEnable == bTRUE)
   //  tempreg |= BITM_AFE_ADCFILTERCON_AVRGEN;
   tempreg |= (uint32_t)(pFiltCfg->ADCSinc2Osr)<<BITP_AFE_ADCFILTERCON_SINC2OSR;
