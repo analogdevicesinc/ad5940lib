@@ -1588,7 +1588,7 @@ void AD5940_ADCFilterCfgS(ADCFilterCfg_Type *pFiltCfg)
   PARA_CHECK(IS_ADCAVGNUM(pFiltCfg->ADCAvgNum));
   PARA_CHECK(IS_ADCRATE(pFiltCfg->ADCRate));
 
-  tempreg = AD5940_ReadReg(REG_AFE_ADCFILTERCON);
+  tempreg = AD5940_ReadReg(REG_AFE_ADCFILTERCON)&0x1fff;	//only bit0-bit13 is valid
   tempreg &= BITM_AFE_ADCFILTERCON_AVRGEN; /* Keep this bit setting. */
 
   tempreg |= pFiltCfg->ADCRate;
@@ -1601,14 +1601,6 @@ void AD5940_ADCFilterCfgS(ADCFilterCfg_Type *pFiltCfg)
   tempreg |= (uint32_t)(pFiltCfg->ADCSinc2Osr)<<BITP_AFE_ADCFILTERCON_SINC2OSR;
   tempreg |= (uint32_t)(pFiltCfg->ADCSinc3Osr)<<BITP_AFE_ADCFILTERCON_SINC3OSR;
   tempreg |= (uint32_t)(pFiltCfg->ADCAvgNum)<<BITP_AFE_ADCFILTERCON_AVRGNUM;
-
-  if(pFiltCfg->Sinc2NotchClkEnable == bFALSE)            /* Need to bFALSE clock, set bit to 1 to bFALSE clock */
-    tempreg |= BITM_AFE_ADCFILTERCON_SINC2CLKENB;   /* bFALSE SINC2 CLK */
-
-  if(pFiltCfg->WGClkEnable == bFALSE) 
-    tempreg |= BITM_AFE_ADCFILTERCON_DACWAVECLKENB; /* bFALSE WG CLK */
-  if(pFiltCfg->DFTClkEnable == bFALSE) 
-    tempreg |= BITM_AFE_ADCFILTERCON_DFTCLKENB;     /* bFALSE DFT CLK */
 
   AD5940_WriteReg(REG_AFE_ADCFILTERCON, tempreg);
 
@@ -2951,11 +2943,7 @@ AD5940Err AD5940_ADCPGACal(ADCPGACal_Type *pADCPGACal)
   adc_filter.ADCRate = bADCClk32MHzMode?ADCRATE_1P6MHZ:ADCRATE_800KHZ;        /* If ADC clock is 32MHz, then set it to ADCRATE_1P6MHZ. Default is 16MHz, use ADCRATE_800KHZ. */
   adc_filter.BpNotch = bTRUE;                 /* SINC2+Notch is one block, when bypass notch filter, we can get fresh data from SINC2 filter. */
   adc_filter.BpSinc3 = bFALSE;                /* We use SINC3 filter. */
-  adc_filter.Sinc3ClkEnable = bTRUE;          /* Enable SINC3 clock.  */
-  adc_filter.Sinc2NotchClkEnable = bTRUE;     
   adc_filter.Sinc2NotchEnable = bTRUE;        /* Enable the SINC2+Notch block. You can also use function AD5940_AFECtrlS */
-  adc_filter.DFTClkEnable = bFALSE;
-  adc_filter.WGClkEnable = bTRUE;  
   AD5940_ADCFilterCfgS(&adc_filter);
   /* Step0.1 Initialize ADC basic function */
   adc_base.ADCMuxP = OffsetADCMuxPSel;
@@ -3126,11 +3114,7 @@ AD5940Err AD5940_LPTIAOffsetCal(LPTIAOffsetCal_Type *pLPTIAOffsetCal)
   adc_filter.ADCRate = bADCClk32MHzMode?ADCRATE_1P6MHZ:ADCRATE_800KHZ;        /* If ADC clock is 32MHz, then set it to ADCRATE_1P6MHZ. Default is 16MHz, use ADCRATE_800KHZ. */
   adc_filter.BpNotch = bTRUE;                       /* SINC2+Notch is one block, when bypass notch filter, we can get fresh data from SINC2 filter. */
   adc_filter.BpSinc3 = bFALSE;                      /* We use SINC3 filter. */
-  adc_filter.Sinc3ClkEnable = bTRUE;                /* Enable SINC3 clock.  */
-  adc_filter.Sinc2NotchClkEnable = bTRUE;           /* Enable SINC2 clock */
   adc_filter.Sinc2NotchEnable = bTRUE;              /* Enable the SINC2+Notch block. You can also use function AD5940_AFECtrlS */
-  adc_filter.DFTClkEnable = bFALSE;
-  adc_filter.WGClkEnable = bFALSE;
   AD5940_ADCFilterCfgS(&adc_filter);
   /* Initialize ADC MUx and PGA */
   if(pLPTIAOffsetCal->LpAmpSel == LPAMP0)
@@ -3338,11 +3322,7 @@ AD5940Err AD5940_HSRtiaCal(HSRTIACal_Type *pCalCfg, void *pResult)
   dsp_cfg.ADCFilterCfg.ADCSinc3Osr = pCalCfg->ADCSinc3Osr;
   dsp_cfg.ADCFilterCfg.BpNotch = bTRUE;
   dsp_cfg.ADCFilterCfg.BpSinc3 = bFALSE;
-  dsp_cfg.ADCFilterCfg.DFTClkEnable = bTRUE;
-  dsp_cfg.ADCFilterCfg.Sinc2NotchClkEnable = bTRUE;
   dsp_cfg.ADCFilterCfg.Sinc2NotchEnable = bTRUE;
-  dsp_cfg.ADCFilterCfg.Sinc3ClkEnable = bTRUE;
-  dsp_cfg.ADCFilterCfg.WGClkEnable = bTRUE;
   
   memcpy(&dsp_cfg.DftCfg, &pCalCfg->DftCfg, sizeof(pCalCfg->DftCfg));
   memset(&dsp_cfg.StatCfg, 0, sizeof(dsp_cfg.StatCfg));
@@ -3546,11 +3526,7 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
 	dsp_cfg.ADCFilterCfg.ADCSinc3Osr = pCalCfg->ADCSinc3Osr;
 	dsp_cfg.ADCFilterCfg.BpNotch = bTRUE;
 	dsp_cfg.ADCFilterCfg.BpSinc3 = bFALSE;
-	dsp_cfg.ADCFilterCfg.DFTClkEnable = bTRUE;
-	dsp_cfg.ADCFilterCfg.Sinc2NotchClkEnable = bTRUE;
 	dsp_cfg.ADCFilterCfg.Sinc2NotchEnable = bTRUE;
-	dsp_cfg.ADCFilterCfg.Sinc3ClkEnable = bTRUE;
-	dsp_cfg.ADCFilterCfg.WGClkEnable = bTRUE;
 	memcpy(&dsp_cfg.DftCfg, &pCalCfg->DftCfg, sizeof(pCalCfg->DftCfg));
 	AD5940_DSPCfgS(&dsp_cfg);
   /* Configure LP Loop */
@@ -3888,11 +3864,7 @@ AD5940Err AD5940_HSDACCal(HSDACCal_Type *pCalCfg)
   adc_filter.ADCRate = bHPMode?ADCRATE_1P6MHZ:ADCRATE_800KHZ;        /* If ADC clock is 32MHz, then set it to ADCRATE_1P6MHZ. Default is 16MHz, use ADCRATE_800KHZ. */
   adc_filter.BpNotch = bTRUE;                 /* SINC2+Notch is one block, when bypass notch filter, we can get fresh data from SINC2 filter. */
   adc_filter.BpSinc3 = bFALSE;                /* We use SINC3 filter. */
-  adc_filter.Sinc3ClkEnable = bTRUE;          /* Enable SINC3 clock.  */
-  adc_filter.Sinc2NotchClkEnable = bTRUE;     
   adc_filter.Sinc2NotchEnable = bTRUE;        /* Enable the SINC2+Notch block. You can also use function AD5940_AFECtrlS */
-  adc_filter.DFTClkEnable = bFALSE;
-  adc_filter.WGClkEnable = bTRUE;  
   AD5940_ADCFilterCfgS(&adc_filter);
   /* Step0.1 Initialize ADC basic function */
   adc_base.ADCMuxP = ADCMUXP_P_NODE;
@@ -4026,11 +3998,7 @@ AD5940Err AD5940_LPDACCal(LPDACCal_Type *pCalCfg, LPDACPara_Type *pResult)
   adc_filter.ADCRate = bADCClk32MHzMode?ADCRATE_1P6MHZ:ADCRATE_800KHZ;        /* If ADC clock is 32MHz, then set it to ADCRATE_1P6MHZ. Default is 16MHz, use ADCRATE_800KHZ. */
   adc_filter.BpNotch = bTRUE;                       /* SINC2+Notch is one block, when bypass notch filter, we can get fresh data from SINC2 filter. */
   adc_filter.BpSinc3 = bFALSE;                      /* We use SINC3 filter. */
-  adc_filter.Sinc3ClkEnable = bTRUE;                /* Enable SINC3 clock.  */
-  adc_filter.Sinc2NotchClkEnable = bTRUE;           /* Enable SINC2 clock */
   adc_filter.Sinc2NotchEnable = bTRUE;              /* Enable the SINC2+Notch block. You can also use function AD5940_AFECtrlS */
-  adc_filter.DFTClkEnable = bFALSE;
-  adc_filter.WGClkEnable = bFALSE;
   AD5940_ADCFilterCfgS(&adc_filter);
   /* Initialize ADC MUx and PGA */
   adc_base.ADCMuxP = ADCMUXP_AGND;

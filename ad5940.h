@@ -1465,9 +1465,6 @@
 /* -------------------------------------------------------------------------------------------------------------------------
           AFE_ADCFILTERCON                     Pos/Masks         Description
    ------------------------------------------------------------------------------------------------------------------------- */
-#define BITP_AFE_ADCFILTERCON_DFTCLKENB      18            /*  DFT Clock Enable */
-#define BITP_AFE_ADCFILTERCON_DACWAVECLKENB  17            /*  DAC Wave Clock Enable */
-#define BITP_AFE_ADCFILTERCON_SINC2CLKENB    16            /*  SINC2 Filter Clock Enable */
 #define BITP_AFE_ADCFILTERCON_AVRGNUM        14            /*  Number of Samples Averaged */
 #define BITP_AFE_ADCFILTERCON_SINC3OSR       12            /*  SINC3 OSR */
 #define BITP_AFE_ADCFILTERCON_SINC2OSR        8            /*  SINC2 OSR */
@@ -1475,9 +1472,6 @@
 #define BITP_AFE_ADCFILTERCON_SINC3BYP        6            /*  SINC3 Filter Bypass */
 #define BITP_AFE_ADCFILTERCON_LPFBYPEN        4            /*  50/60Hz Low Pass Filter */
 #define BITP_AFE_ADCFILTERCON_ADCCLK          0            /*  ADC Data Rate */
-#define BITM_AFE_ADCFILTERCON_DFTCLKENB      0x00040000    /*  DFT Clock Enable */
-#define BITM_AFE_ADCFILTERCON_DACWAVECLKENB  0x00020000    /*  DAC Wave Clock Enable */
-#define BITM_AFE_ADCFILTERCON_SINC2CLKENB    0x00010000    /*  SINC2 Filter Clock Enable */
 #define BITM_AFE_ADCFILTERCON_AVRGNUM        0x0000C000    /*  Number of Samples Averaged */
 #define BITM_AFE_ADCFILTERCON_SINC3OSR       0x00003000    /*  SINC3 OSR */
 #define BITM_AFE_ADCFILTERCON_SINC2OSR       0x00000F00    /*  SINC2 OSR */
@@ -4265,13 +4259,9 @@ typedef struct
   uint32_t ADCSinc2Osr;
   uint32_t ADCAvgNum;
   uint32_t ADCRate;             /**< ADC Core sample rate */
-  BoolFlag BpNotch;             /**< Bypass Notch filter module. ADCFILTERCON.BIT4 */
+  BoolFlag BpNotch;             /**< Bypass Notch filter in SINC2+Notch block, so only SINC2 is used. ADCFILTERCON.BIT4 */
   BoolFlag BpSinc3;             /**< Bypass SINC3 Module */
-  BoolFlag Sinc3ClkEnable;      /**< Enable SINC3 clock */
-  BoolFlag Sinc2NotchClkEnable; /**< Enable SINC2+Notch clock */
   BoolFlag Sinc2NotchEnable;    /**< Enable SINC2+Notch block */
-  BoolFlag DFTClkEnable;        /**< Enable DFT clock */
-  BoolFlag WGClkEnable;         /**< Enable Waveform Generator clock */
 }ADCFilterCfg_Type;
 /** @} */
 
