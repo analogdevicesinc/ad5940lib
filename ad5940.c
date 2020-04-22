@@ -3336,29 +3336,19 @@ AD5940Err AD5940_HSRtiaCal(HSRTIACal_Type *pCalCfg, void *pResult)
   DftRtia.Image = -DftRtia.Image;
   DftRcal.Image = -DftRcal.Image;
 
+  fImpCar_Type temp;
+  temp = AD5940_ComplexDivInt(&DftRtia, &DftRcal);
+  temp.Real *= pCalCfg->fRcal;
+  temp.Image *= pCalCfg->fRcal;
   if(pCalCfg->bPolarResult == bFALSE)
   {
-     float temp = (float)DftRcal.Real*DftRcal.Real + (float)DftRcal.Image*DftRcal.Image;
-
-    /* RTIA = (DftRtia.Real, DftRtia.Image)/(DftRcal.Real, DftRcal.Image)*fRcal */
-    ((fImpCar_Type*)pResult)->Real = ((float)DftRtia.Real*DftRcal.Real+(float)DftRtia.Image*DftRcal.Image)/temp*pCalCfg->fRcal; /* Real Part */
-    ((fImpCar_Type*)pResult)->Image = ((float)DftRtia.Image*DftRcal.Real-(float)DftRtia.Real*DftRcal.Image)/temp*pCalCfg->fRcal; /* Imaginary Part */
-    //printf("RTIA mag:%f,",sqrt(pResult[0]*pResult[0]+pResult[1]*pResult[1]));
-    //printf("phase:%f\n",atan2(pResult[1],pResult[0])/3.1415926*180);
+    *(fImpCar_Type*)pResult = temp;
   }
   else
   {
-    float RcalMag,RtiaMag,RtiaPhase;
-    RcalMag = sqrt((float)DftRcal.Real*DftRcal.Real+(float)DftRcal.Image*DftRcal.Image);
-    RtiaMag = sqrt((float)DftRtia.Real*DftRtia.Real+(float)DftRtia.Image*DftRtia.Image);
-    RtiaMag = (RtiaMag/RcalMag)*pCalCfg->fRcal;
-    RtiaPhase = atan2(DftRtia.Image,DftRtia.Real) - atan2(DftRcal.Image,DftRcal.Real);
-
-    ((fImpPol_Type*)pResult)->Magnitude = RtiaMag;
-    ((fImpPol_Type*)pResult)->Phase = RtiaPhase;
-    //printf("RTIA mag:%f,",RtiaMag);
-    //printf("phase:%f\n",RtiaPhase*180/MATH_PI);
-   }
+    ((fImpPol_Type*)pResult)->Magnitude = AD5940_ComplexMag(&temp);
+    ((fImpPol_Type*)pResult)->Phase = AD5940_ComplexPhase(&temp);
+  }
   
   /* Restore INTC1 DFT configure */
   if(INTCCfg&AFEINTSRC_DFTRDY);
@@ -3708,25 +3698,20 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
   DftRtia.Image = -DftRtia.Image;
   DftRcal.Image = -DftRcal.Image;
 
+  fImpCar_Type res;
+  /* RTIA = (DftRtia.Real, DftRtia.Image)/(DftRcal.Real, DftRcal.Image)*fRcal */
+  res = AD5940_ComplexDivInt(&DftRtia, &DftRcal);
+  res.Real *= pCalCfg->fRcal/GainRatio;
+  res.Image *= pCalCfg->fRcal/GainRatio;
   if(pCalCfg->bPolarResult == bFALSE)
   {
-    fImpCar_Type res;
-    /* RTIA = (DftRtia.Real, DftRtia.Image)/(DftRcal.Real, DftRcal.Image)*fRcal */
-    res = AD5940_ComplexDivInt(&DftRtia, &DftRcal);
-    res.Real *= pCalCfg->fRcal/GainRatio;
-    res.Image *= pCalCfg->fRcal/GainRatio;
     ((fImpCar_Type*)pResult)->Real = res.Real;
     ((fImpCar_Type*)pResult)->Image = res.Image;
   }
   else
   {
-    float RcalMag,RtiaMag,RtiaPhase;
-    RcalMag = sqrt((float)DftRcal.Real*DftRcal.Real+(float)DftRcal.Image*DftRcal.Image);
-    RtiaMag = sqrt((float)DftRtia.Real*DftRtia.Real+(float)DftRtia.Image*DftRtia.Image);
-    RtiaMag = (RtiaMag/RcalMag)*pCalCfg->fRcal/GainRatio;
-    RtiaPhase = atan2(DftRtia.Image,DftRtia.Real) - atan2(DftRcal.Image,DftRcal.Real);
-    ((fImpPol_Type*)pResult)->Magnitude = RtiaMag;
-    ((fImpPol_Type*)pResult)->Phase = RtiaPhase;
+    ((fImpPol_Type*)pResult)->Magnitude = AD5940_ComplexMag(&res);
+    ((fImpPol_Type*)pResult)->Phase = AD5940_ComplexPhase(&res);
   }
     
   /* Restore INTC1 DFT configure */
