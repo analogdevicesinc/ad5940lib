@@ -2837,34 +2837,18 @@ static uint32_t __AD5940_TakeMeasurement(int32_t *time_out)
 **/
 AD5940Err AD5940_ADCPGACal(ADCPGACal_Type *pADCPGACal)
 {
-/** @cond */
-#define VOLTSRC_GAIN1   0                 /* The standard voltage source for GAIN1 calibration. 0: internal -1.1 for gain, 1 : internal 0.8V for gain. 2: external 1.8V on CE0 */
-#define STDGAIN_FOR_GAIN49    ADCPGA_1    /* The standard gain. Use this gain to calibrate GAIN4 and GAIN9. Select from ADCPGA_1, ADCPGA_1P5 and ADCPGA_2 */
-#define __STDGAIN_VALUE       ((STDGAIN_FOR_GAIN49==ADCPGA_1)?1:\
-                                ((STDGAIN_FOR_GAIN49==ADCPGA_1P5)?1.5:\
-                                (STDGAIN_FOR_GAIN49==ADCPGA_2?2:4)))
-/** @endcond*/
   const float kFactor = 1.835f/1.82f;
   ADCBaseCfg_Type adc_base;
-  ADCFilterCfg_Type adc_filter;
-  HSLoopCfg_Type hsloop_cfg;
 
-  float VRef1p82 = pADCPGACal->VRef1p82;
-  float VRef1p11 = pADCPGACal->VRef1p11;
   int32_t time_out;
   uint32_t INTCCfg;
   int32_t ADCCode;
-  uint32_t HSDACCdoe = 0x800;     /* Use HSDAC voltage to calibrate GAIN2/4/9. For GAIN1 and 1P5, it's ignored */
-  int32_t ExpectedGainCode = 0;
   BoolFlag bADCClk32MHzMode;
 
   uint32_t regaddr_gain, regaddr_offset;
-  uint32_t GainADCMuxPSel, GainADCMuxNSel;
-  uint32_t OffsetADCMuxPSel = ADCMUXP_VSET1P1, OffsetADCMuxNSel = ADCMUXN_VSET1P1;  /* Set default to 1.1V common voltage for ADC MUX P/N */
   
   if(pADCPGACal == NULL) return AD5940ERR_NULLP;
   if(pADCPGACal->ADCPga > ADCPGA_9) return AD5940ERR_PARA;  /* Parameter Error */
-  if(VRef1p82 < 1.70f)  VRef1p82 = 1.82f;       /* It looks like reference value is wrong, set it to default value and continue */
   
   if(pADCPGACal->AdcClkFreq > (32000000*0.8))
     bADCClk32MHzMode = bTRUE; 
@@ -2873,78 +2857,24 @@ AD5940Err AD5940_ADCPGACal(ADCPGACal_Type *pADCPGACal)
    *  Determine Gain calibration method according to different gain value...
    *  and calibration register 
    * */
-  switch(pADCPGACal->ADCPga)
+  static const struct _cal_registers
   {
-    float VoltForGainCal;
-    case ADCPGA_1:
-      regaddr_gain = REG_AFE_ADCGAINGN1;
-      regaddr_offset = REG_AFE_ADCOFFSETGN1;
-      if(VOLTSRC_GAIN1 == 0) /* Internal -1.1V */
-      {
-      GainADCMuxPSel = ADCMUXP_AGND;
-      GainADCMuxNSel = ADCMUXN_VSET1P1;
-      VoltForGainCal = 0-VRef1p11;
-      }
-      else if(VOLTSRC_GAIN1 == 1) /* Internal 0.7V */
-      {
-      GainADCMuxPSel = ADCMUXP_VREF1P8DAC;
-      GainADCMuxNSel = ADCMUXN_VSET1P1;
-      VoltForGainCal = VRef1p82-VRef1p11;
-      }
-      else if(VOLTSRC_GAIN1 == 2)  /* External 1.8V */
-      {
-      GainADCMuxPSel = ADCMUXP_VCE0;
-      GainADCMuxNSel = ADCMUXN_VSET1P1;
-      VoltForGainCal = 1.8f-VRef1p11;
-      }
-      else if(VOLTSRC_GAIN1 == 3)  /* Internal 0.7V... And internal -1.1V */
-      {
-      GainADCMuxPSel = ADCMUXP_VREF1P8DAC;
-      GainADCMuxNSel = ADCMUXN_VSET1P1;
-      }
-      ExpectedGainCode = (int32_t)(VoltForGainCal*1/VRef1p82*32768/kFactor + 0x8000);
-      break;
-    case ADCPGA_1P5:
-      regaddr_gain = REG_AFE_ADCGAINGN1P5;
-      regaddr_offset = REG_AFE_ADCOFFSETGN1P5;
-      GainADCMuxPSel = ADCMUXP_VREF1P8DAC;  /* DAC reference 1.82V */
-      GainADCMuxNSel = ADCMUXN_VSET1P1;
-      VoltForGainCal = VRef1p82 - VRef1p11; 
-      ExpectedGainCode = (int32_t)(VoltForGainCal*1.5f/VRef1p82*32768/kFactor + 0x8000);
-      break;
-    case ADCPGA_2:
-      regaddr_gain = REG_AFE_ADCGAINGN2;
-      regaddr_offset = REG_AFE_ADCOFFSETGN2;
-      GainADCMuxPSel = ADCMUXP_VREF1P8DAC;  /* DAC reference 1.82V */
-      GainADCMuxNSel = ADCMUXN_VSET1P1;
-      VoltForGainCal = VRef1p82 - VRef1p11; 
-      ExpectedGainCode = (int32_t)(VoltForGainCal*2/VRef1p82*32768/kFactor + 0x8000);
-      break;
-    case ADCPGA_4:
-      regaddr_gain = REG_AFE_ADCGAINGN1P5;
-      regaddr_offset = REG_AFE_ADCOFFSETGN1P5;
-      GainADCMuxPSel = ADCMUXP_P_NODE;  /* DAC reference 1.82V */
-      GainADCMuxNSel = ADCMUXN_N_NODE;
-			/* Expected code is measured with GAIN1P5(or with GAIN1?). */
-      HSDACCdoe = 0x800 + 0x300;  /* 0x300--> 0x300/0x1000*0.8*BUFFERGAIN2 = 0.3V. */
-      break;
-    case ADCPGA_9:
-      regaddr_gain = REG_AFE_ADCGAINGN1P5;
-      regaddr_offset = REG_AFE_ADCOFFSETGN1P5;
+    uint16_t gain_reg;
+    uint16_t offset_reg;
+  }cal_registers[] = {
+    {REG_AFE_ADCGAINGN1,REG_AFE_ADCOFFSETGN1},
+    {REG_AFE_ADCGAINGN1P5,REG_AFE_ADCOFFSETGN1P5},
+    {REG_AFE_ADCGAINGN2,REG_AFE_ADCOFFSETGN2},
+    {REG_AFE_ADCGAINGN4,REG_AFE_ADCOFFSETGN4},
+    {REG_AFE_ADCGAINGN9,REG_AFE_ADCOFFSETGN9},
+  };
+  regaddr_gain = cal_registers[pADCPGACal->ADCPga].gain_reg;
+  regaddr_offset = cal_registers[pADCPGACal->ADCPga].offset_reg;
 
-      GainADCMuxPSel = ADCMUXP_P_NODE;  /* DAC reference 1.82V */
-      GainADCMuxNSel = ADCMUXN_N_NODE;
-      VoltForGainCal = VRef1p82 - VRef1p11; 
-      /* Expected code is measured with GAIN1P5(or with GAIN1?). */
-      HSDACCdoe = 0x800 + 0x155;  /* 0x155--> 0x155/0x1000*0.8*BUFFERGAIN2 = 0.133V. */
-      break;
-		default:
-			return AD5940ERR_PARA;
-  }
-
-  /* Step0: Do initialization */
+  /* Do initialization */
   __AD5940_ReferenceON();
-  /* Step0.0 Initialize ADC filters ADCRawData-->SINC3-->SINC2+NOTCH. Use SIN2 data for calibration-->Lower noise */
+  ADCFilterCfg_Type adc_filter;
+  /* Initialize ADC filters ADCRawData-->SINC3-->SINC2+NOTCH. Use SIN2 data for calibration-->Lower noise */
   adc_filter.ADCSinc3Osr = pADCPGACal->ADCSinc3Osr;
   adc_filter.ADCSinc2Osr = pADCPGACal->ADCSinc2Osr;  /* 800KSPS/4/1333 = 150SPS */
   adc_filter.ADCAvgNum = ADCAVGNUM_2;         /* Don't care about it. Average function is only used for DFT */
@@ -2957,104 +2887,109 @@ AD5940Err AD5940_ADCPGACal(ADCPGACal_Type *pADCPGACal)
   adc_filter.DFTClkEnable = bFALSE;
   adc_filter.WGClkEnable = bTRUE;  
   AD5940_ADCFilterCfgS(&adc_filter);
-  /* Step0.1 Initialize ADC basic function */
-  adc_base.ADCMuxP = OffsetADCMuxPSel;
-  adc_base.ADCMuxN = OffsetADCMuxNSel;
-  adc_base.ADCPga = pADCPGACal->ADCPga;                   /* Set correct Gain value. */
-  AD5940_ADCBaseCfgS(&adc_base);
-  hsloop_cfg.HsDacCfg.ExcitBufGain = EXCITBUFGAIN_2;
-  hsloop_cfg.HsDacCfg.HsDacGain = HSDACGAIN_1;
-  hsloop_cfg.HsDacCfg.HsDacUpdateRate = 7;
-  hsloop_cfg.HsTiaCfg.DiodeClose = bFALSE;
-  hsloop_cfg.HsTiaCfg.HstiaBias = HSTIABIAS_1P1;
-  hsloop_cfg.HsTiaCfg.HstiaCtia = 31;
-  hsloop_cfg.HsTiaCfg.HstiaDeRload = HSTIADERLOAD_OPEN;
-  hsloop_cfg.HsTiaCfg.HstiaDeRtia = HSTIADERTIA_OPEN;
-  hsloop_cfg.HsTiaCfg.HstiaDe1Rload = HSTIADERLOAD_OPEN;
-  hsloop_cfg.HsTiaCfg.HstiaDe1Rtia = HSTIADERTIA_OPEN;
-  hsloop_cfg.HsTiaCfg.HstiaRtiaSel = HSTIARTIA_200;
-  hsloop_cfg.SWMatCfg.Dswitch = SWD_OPEN;
-  hsloop_cfg.SWMatCfg.Pswitch = SWP_PL;
-  hsloop_cfg.SWMatCfg.Nswitch = SWN_NL;
-  hsloop_cfg.SWMatCfg.Tswitch = SWT_TRTIA;
-  hsloop_cfg.WgCfg.GainCalEn = bTRUE;
-  hsloop_cfg.WgCfg.OffsetCalEn = bTRUE;
-  hsloop_cfg.WgCfg.WgType = WGTYPE_MMR;
-  hsloop_cfg.WgCfg.WgCode = HSDACCdoe;        /* Determine the right DAC code with PGA gain */
-  AD5940_HSLoopCfgS(&hsloop_cfg);
-  /* Step0.2 Turn ON reference and ADC power, and DAC power and DAC reference. We use DAC 1.8V reference to calibrate ADC because of the ADC reference bug. */
+  /* Turn ON reference and ADC power, and DAC reference. We use DAC 1.8V reference to calibrate ADC because of the ADC reference bug. */
   AD5940_AFECtrlS(AFECTRL_ALL, bFALSE); /* Disable all */
-  AD5940_AFECtrlS(AFECTRL_ADCPWR|AFECTRL_HPREFPWR|AFECTRL_DACREFPWR|AFECTRL_HSDACPWR|AFECTRL_SINC2NOTCH|\
-                  AFECTRL_EXTBUFPWR|AFECTRL_INAMPPWR|AFECTRL_HSTIAPWR|AFECTRL_WG, bTRUE);
+  AD5940_AFECtrlS(AFECTRL_ADCPWR|AFECTRL_HPREFPWR|AFECTRL_DACREFPWR|AFECTRL_HSDACPWR|AFECTRL_SINC2NOTCH, bTRUE);
   AD5940_Delay10us(25);   /* Wait 250us for reference power up */
-  /* Step0.3 INTC configure and open calibration lock */
+  /* INTC configure and open calibration lock */
   INTCCfg = AD5940_INTCGetCfg(AFEINTC_1);
   AD5940_INTCCfg(AFEINTC_1, AFEINTSRC_SINC2RDY, bTRUE); /* Enable SINC2 Interrupt in INTC1 */
   AD5940_WriteReg(REG_AFE_CALDATLOCK, KEY_CALDATLOCK);  /* Unlock KEY */
 
-  /* Step1: Do offset calibration. */
-  {
+  /* Do offset calibration. */
+  if(pADCPGACal->PGACalType != PGACALTYPE_GAIN){  /* Need offset calibration */
     int32_t ExpectedCode = 0x8000;        /* Ideal ADC output */
     AD5940_WriteReg(regaddr_offset, 0);   /* Reset offset register */
-    AD5940_ADCMuxCfgS(OffsetADCMuxPSel, OffsetADCMuxNSel);  
+
+    adc_base.ADCMuxP = ADCMUXP_VSET1P1;
+    adc_base.ADCMuxN = ADCMUXN_VSET1P1;   /* Short input with common voltage set to 1.11v */
+    adc_base.ADCPga = pADCPGACal->ADCPga; /* Set correct Gain value. */
+    AD5940_ADCBaseCfgS(&adc_base);
     AD5940_Delay10us(5);                  /* Wait for sometime */
-
-    time_out = pADCPGACal->TimeOut10us;   /* Reset time out counter */
-    ADCCode = __AD5940_TakeMeasurement(&time_out);  /* Turn on ADC to get one valid data and then turn off ADC. */
-    if(time_out == 0) goto ADCPGACALERROR_TIMEOUT;  /* Time out error. */
-
+    ADCCode = 0;
+    for(int i=0; i<8; i++)
+    { /* ADC offset calibration register has resolution of 0.25LSB. take full use of it. */
+      time_out = pADCPGACal->TimeOut10us;   /* Reset time out counter */
+      ADCCode += __AD5940_TakeMeasurement(&time_out);  /* Turn on ADC to get one valid data and then turn off ADC. */
+      if(time_out == 0) goto ADCPGACALERROR_TIMEOUT;  /* Time out error. */
+    }
     /* Calculate and write the result to registers before gain calibration */
-    ADCCode = (ExpectedCode - ADCCode)<<3;  /* We will shift back 1bit below */
+    ADCCode = (ExpectedCode<<3) - ADCCode;  /* We will shift back 1bit below */
+    /**
+     * AD5940 use formular Output = gain*(input + offset) for calibration.
+     * So, the measured results should be divided by gain to get value for offset register.
+    */
+    uint32_t gain = AD5940_ReadReg(regaddr_gain);
+    ADCCode = (ADCCode*0x4000)/gain;
     ADCCode = ((ADCCode+1)>>1)&0x7fff;      /* Round 0.5 */
     AD5940_WriteReg(regaddr_offset, ADCCode);
   }
   
-  /* Step2 Do gain calibration */
+  /* Do gain calibration */
   if(pADCPGACal->PGACalType != PGACALTYPE_OFFSET)  /* Need gain calibration */
   {
+    int32_t ExpectedGainCode;
+    static const float ideal_pga_gain[]={1,1.5,2,4,9};
     AD5940_WriteReg(regaddr_gain, 0x4000);  /* Reset gain register */
-    adc_base.ADCMuxP = GainADCMuxPSel;
-    adc_base.ADCMuxN = GainADCMuxNSel;
-    adc_base.ADCPga = pADCPGACal->ADCPga;    /* Set correct gain */
-    AD5940_ADCBaseCfgS(&adc_base);
-    AD5940_Delay10us(5); 
+    if(pADCPGACal->ADCPga <= ADCPGA_2)
+    {
+      //gain1,1.5,2 could use reference directly
+      adc_base.ADCMuxP = ADCMUXP_VREF1P8DAC;
+      adc_base.ADCMuxN = ADCMUXN_VSET1P1;
+      ExpectedGainCode = (int32_t)((pADCPGACal->VRef1p82 - pADCPGACal->VRef1p11)*ideal_pga_gain[pADCPGACal->ADCPga]/\
+                                    pADCPGACal->VRef1p82*32768/kFactor)\
+                                    + 0x8000;
+    }
+    else
+    {
+      //gain4,9 use DAC generated voltage
+      adc_base.ADCMuxP = ADCMUXP_P_NODE;
+      adc_base.ADCMuxN = ADCMUXN_N_NODE;
+      /* Setup HSLOOP to generate voltage for GAIN4/9 calibration. */
+      AD5940_AFECtrlS(AFECTRL_EXTBUFPWR|AFECTRL_INAMPPWR|AFECTRL_HSTIAPWR|AFECTRL_WG, bTRUE);
+      HSLoopCfg_Type hsloop_cfg;
+      hsloop_cfg.HsDacCfg.ExcitBufGain = EXCITBUFGAIN_2;
+      hsloop_cfg.HsDacCfg.HsDacGain = HSDACGAIN_1;
+      hsloop_cfg.HsDacCfg.HsDacUpdateRate = 7;
+      hsloop_cfg.HsTiaCfg.DiodeClose = bFALSE;
+      hsloop_cfg.HsTiaCfg.HstiaBias = HSTIABIAS_1P1;
+      hsloop_cfg.HsTiaCfg.HstiaCtia = 31;
+      hsloop_cfg.HsTiaCfg.HstiaDeRload = HSTIADERLOAD_OPEN;
+      hsloop_cfg.HsTiaCfg.HstiaDeRtia = HSTIADERTIA_OPEN;
+      hsloop_cfg.HsTiaCfg.HstiaDe1Rload = HSTIADERLOAD_OPEN;
+      hsloop_cfg.HsTiaCfg.HstiaDe1Rtia = HSTIADERTIA_OPEN;
+      hsloop_cfg.HsTiaCfg.HstiaRtiaSel = HSTIARTIA_200;
+      hsloop_cfg.SWMatCfg.Dswitch = SWD_OPEN;
+      hsloop_cfg.SWMatCfg.Pswitch = SWP_PL;
+      hsloop_cfg.SWMatCfg.Nswitch = SWN_NL;
+      hsloop_cfg.SWMatCfg.Tswitch = SWT_TRTIA;
+      hsloop_cfg.WgCfg.GainCalEn = bTRUE;
+      hsloop_cfg.WgCfg.OffsetCalEn = bTRUE;
+      hsloop_cfg.WgCfg.WgType = WGTYPE_MMR;
+      uint32_t HSDACCode;
+      if(pADCPGACal->ADCPga == ADCPGA_4)
+        HSDACCode = 0x800 + 0x300;  /* 0x300--> 0x300/0x1000*0.8*BUFFERGAIN2 = 0.3V. */
+      else if(pADCPGACal->ADCPga == ADCPGA_9)
+        HSDACCode = 0x800 + 0x155;  /* 0x155--> 0x155/0x1000*0.8*BUFFERGAIN2 = 0.133V. */
+      hsloop_cfg.WgCfg.WgCode = HSDACCode;
+      AD5940_HSLoopCfgS(&hsloop_cfg);
 
+      //measure expected code
+      adc_base.ADCPga = ADCPGA_1P5;
+      AD5940_ADCBaseCfgS(&adc_base);  
+      AD5940_Delay10us(5);
+      time_out = pADCPGACal->TimeOut10us;   /* Reset time out counter */
+      ExpectedGainCode = 0x8000 + (int32_t)((__AD5940_TakeMeasurement(&time_out) - 0x8000)/1.5f\
+                                            *ideal_pga_gain[pADCPGACal->ADCPga]);
+      if(time_out == 0) goto ADCPGACALERROR_TIMEOUT;
+    }
+    adc_base.ADCPga = pADCPGACal->ADCPga;    /* Set to gain under calibration */
+    AD5940_ADCBaseCfgS(&adc_base);
+    AD5940_Delay10us(5);
     time_out = pADCPGACal->TimeOut10us;      /* Reset time out counter */
     ADCCode = __AD5940_TakeMeasurement(&time_out);
     if(time_out == 0) goto ADCPGACALERROR_TIMEOUT;
-    if((VOLTSRC_GAIN1 == 3)&&\
-        (pADCPGACal->ADCPga == ADCPGA_1))
-    {
-      //Do another measurement on -1.1V
-      AD5940_ADCMuxCfgS(ADCMUXP_AGND, ADCMUXN_VSET1P1);  
-      AD5940_Delay10us(5);
-      time_out = pADCPGACal->TimeOut10us;   /* Reset time out counter */
-      ADCCode -= __AD5940_TakeMeasurement(&time_out);
-      ADCCode += 0x8000;
-      if(time_out == 0) goto ADCPGACALERROR_TIMEOUT;
-    }
-
-    if(pADCPGACal->ADCPga == ADCPGA_4)  /* For gain4/9, we need HSDAC */
-    {
-      adc_base.ADCPga = STDGAIN_FOR_GAIN49; /* Use calibrated Gain to get expected ADC code */
-      AD5940_ADCBaseCfgS(&adc_base);  
-      AD5940_Delay10us(5); 
-      time_out = pADCPGACal->TimeOut10us;   /* Reset time out counter */
-      ExpectedGainCode = __AD5940_TakeMeasurement(&time_out);
-      if(time_out == 0) goto ADCPGACALERROR_TIMEOUT;
-      ExpectedGainCode = (int32_t)(((int32_t)ExpectedGainCode - 0x8000)*4/__STDGAIN_VALUE + 0x8000);
-    }
-    else if(pADCPGACal->ADCPga == ADCPGA_9)  /* For gain4/9, we need HSDAC */
-    {
-      adc_base.ADCPga = STDGAIN_FOR_GAIN49;
-      AD5940_ADCBaseCfgS(&adc_base);  /* Use GAIN2 to get expected ADC code */
-      AD5940_Delay10us(5); 
-      time_out = pADCPGACal->TimeOut10us;   /* Reset time out counter */
-      ExpectedGainCode = __AD5940_TakeMeasurement(&time_out);
-      if(time_out == 0) goto ADCPGACALERROR_TIMEOUT;
-      ExpectedGainCode = (int32_t)(((int32_t)ExpectedGainCode - 0x8000)*9/__STDGAIN_VALUE + 0x8000);
-    }
-    /* Calculate and write the result to registers before gain calibration */
+    /* Calculate and write the result to registers */
     ADCCode = (ExpectedGainCode - 0x8000)*0x4000/(ADCCode-0x8000);
     ADCCode &= 0x7fff;
     AD5940_WriteReg(regaddr_gain, ADCCode);
