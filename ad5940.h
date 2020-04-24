@@ -3589,7 +3589,7 @@
 #define ADCMUXP_VSE0                0xE     /**< Voltage of SE0 pin  */
 #define ADCMUXP_VSE1                0xF     /**< Voltage of SE1 pin on ADuCM355  */
 #define ADCMUXP_VAFE3               0xF     /**< Voltage of AFE3 pin on AD5940. */
-#define ADCMUXP_VREF2P5             0x10    /**< The internal 2.5V reference buffer output. */
+#define ADCMUXP_VREF2P5             0x10    /**< 1.25V. The internal 2.5V reference buffer output divided by 2. */
 #define ADCMUXP_VREF1P8DAC          0x12    /**< HSDAC 1.8V internal reference. It's only available when both AFECON.BIT20 and AFECON.BIT6 are set. */
 #define ADCMUXP_TEMPN               0x13    /**< Internal temperature output negative terminal */
 #define ADCMUXP_AIN4                0x14    /**< Voltage of AIN4/LPF0 pin  */
@@ -3976,6 +3976,7 @@
 #define DATATYPE_SINC3              1     /**< SINC3 data */
 #define DATATYPE_SINC2              2     /**< SINC2 Data */
 #define DATATYPE_DFT                3     /**< DFT */
+#define DATATYPE_NOTCH              4     /**< Notch filter output. (when notch is not bypassed) */
 //#define DATATYPE_MEAN
 /** @} */
 
@@ -4697,13 +4698,15 @@ typedef struct
 */
 typedef struct
 {
-  uint32_t ADCSinc3Osr;       /**< ADC SINC3 filter OSR setting */
-  uint32_t ADCSinc2Osr;       /**< ADC SINC2 filter OSR setting */
-  uint32_t ADCAvgNum;         /**< Average number for DFT engine, init this if DataType is DFT. */
-  uint32_t DftSrc;            /**< The DFT source. Init this if DataType is DFT. */
   uint32_t DataType;          /**< The final data output selection. @ref DATATYPE_Const */
   uint32_t DataCount;         /**< How many data you want. */
-  float RatioSys2AdcClk;/**< Ratio of system clock to ADC clock frequency */
+  uint32_t ADCSinc3Osr;       /**< ADC SINC3 filter OSR setting */
+  uint32_t ADCSinc2Osr;       /**< ADC SINC2 filter OSR setting */
+  uint32_t ADCAvgNum;         /**< Average number for DFT engine. Only used when data type is DATATYPE_DFT and DftSrc is DFTSRC_AVG */
+  uint32_t DftSrc;            /**< The DFT source. Only used when data type is DATATYPE_DFT */
+  uint8_t  ADCRate;           /**< ADCRate @ref ADCRATE_Const. Only used when data type is DATATYPE_NOTCH */
+  BoolFlag BpNotch;           /**< Bypass notch filter or not. Only used when data type is DATATYPE_DFT and DftSrc is DFTSRC_SINC2NOTCH */
+  float RatioSys2AdcClk;      /**< Ratio of system clock to ADC clock frequency */
 }ClksCalInfo_Type;
 
 /** 
@@ -4880,6 +4883,8 @@ uint32_t  AD5940_SEQCycleTime(void);
 void      AD5940_SweepNext(SoftSweepCfg_Type *pSweepCfg, float *pNextFreq);
 void      AD5940_StructInit(void *pStruct, uint32_t StructSize);
 float     AD5940_ADCCode2Volt(uint32_t code, uint32_t ADCPga, float VRef1p82); /* Calculate ADC code to voltage */
+BoolFlag  AD5940_Notch50HzAvailable(ADCFilterCfg_Type *pFilterInfo, uint8_t *dl);
+BoolFlag  AD5940_Notch60HzAvailable(ADCFilterCfg_Type *pFilterInfo, uint8_t *dl);
 fImpCar_Type AD5940_ComplexDivFloat(fImpCar_Type *a, fImpCar_Type *b);
 fImpCar_Type AD5940_ComplexMulFloat(fImpCar_Type *a, fImpCar_Type *b);
 fImpCar_Type AD5940_ComplexAddFloat(fImpCar_Type *a, fImpCar_Type *b);

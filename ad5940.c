@@ -346,7 +346,131 @@ uint32_t AD5940_SEQCycleTime(void)
 */
 
 /**
- * @brief Calculate how much clocks are needed in sequencer wait command to generate required number of data.
+ * Check if an uint8_t value exist in table.
+*/
+static int32_t _is_value_in_table(uint8_t value, const uint8_t *table, uint8_t len, uint8_t *index)
+{
+  for(int i=0; i<len; i++)
+  {
+    if(value == table[i])
+    {
+      *index = i;
+      return bTRUE;
+    }
+  }
+  return bFALSE;
+}
+
+/**
+ * @brief return if the SINC3/SINC2 combination is available for notch 50Hz filter.
+ *        If it's not availabe, hardware automatically bypass Notch even if it's enabled.
+ * @param pFilterInfo the filter configuration, only need sinc2/sinc3 osr and adc data rate information.
+ * @return return bTRUE if notch 50Hz filter is available.
+*/
+BoolFlag AD5940_Notch50HzAvailable(ADCFilterCfg_Type *pFilterInfo, uint8_t *dl)
+{
+  if((pFilterInfo->ADCRate == ADCRATE_800KHZ && pFilterInfo->ADCSinc3Osr == ADCSINC3OSR_2)||\
+      (pFilterInfo->ADCRate == ADCRATE_1P6MHZ && pFilterInfo->ADCSinc3Osr != ADCSINC3OSR_2))
+  {
+    //this combination suits for filter:
+    //SINC3 OSR2, for 800kSPS
+    //and SINC3 OSR4 and OSR5 for 1.6MSPS,
+    const uint8_t available_sinc2_osr[] = {ADCSINC2OSR_533, ADCSINC2OSR_667,ADCSINC2OSR_800, ADCSINC2OSR_889, ADCSINC2OSR_1333};
+    const uint8_t dl_50Hz[] = {15,12,10,9,6};
+    uint8_t index;
+    if(_is_value_in_table(pFilterInfo->ADCSinc2Osr, available_sinc2_osr, sizeof(available_sinc2_osr), &index))
+    {
+      *dl = dl_50Hz[index];
+      return bTRUE;
+    }
+  }
+  else if(pFilterInfo->ADCRate == ADCRATE_1P6MHZ && pFilterInfo->ADCSinc3Osr == ADCSINC3OSR_2)
+  {
+    //this combination suits for filter:
+    //SINC3 OSR2 for 1.6MSPS
+    const uint8_t available_sinc2_osr[] = {ADCSINC2OSR_889, ADCSINC2OSR_1067, ADCSINC2OSR_1333};
+    const uint8_t dl_50Hz[] = {18,15,12};
+    uint8_t index;
+    if(_is_value_in_table(pFilterInfo->ADCSinc2Osr, available_sinc2_osr, sizeof(available_sinc2_osr), &index))
+    {
+      *dl = dl_50Hz[index];
+      return bTRUE;
+    }
+  }
+  else if(pFilterInfo->ADCRate == ADCRATE_800KHZ && pFilterInfo->ADCSinc3Osr != ADCSINC3OSR_2)
+  {
+    //this combination suits for filter:
+    //SINC3 OSR4 and OSR5 for 800kSPS,
+    const uint8_t available_sinc2_osr[] = {ADCSINC2OSR_178, ADCSINC2OSR_267, ADCSINC2OSR_533, ADCSINC2OSR_640,\
+                                    ADCSINC2OSR_800, ADCSINC2OSR_1067};
+    const uint8_t dl_50Hz[] = {18,12,6,5,4,3};
+    uint8_t index;
+    if(_is_value_in_table(pFilterInfo->ADCSinc2Osr, available_sinc2_osr, sizeof(available_sinc2_osr), &index))
+    {
+      *dl = dl_50Hz[index];
+      return bTRUE;
+    }
+  }
+  *dl = 0;
+  return bFALSE;
+}
+
+/**
+ * @brief return if the SINC3/SINC2 combination is available for notch 60Hz filter.
+ *        If it's not availabe, hardware automatically bypass Notch even if it's enabled.
+ * @param pFilterInfo the filter configuration, need sinc2/sinc3 osr and adc data rate information.
+ * @return return bTRUE if notch 60Hz filter is available.
+*/
+BoolFlag AD5940_Notch60HzAvailable(ADCFilterCfg_Type *pFilterInfo, uint8_t *dl)
+{
+  if((pFilterInfo->ADCRate == ADCRATE_800KHZ && pFilterInfo->ADCSinc3Osr == ADCSINC3OSR_2)||\
+      (pFilterInfo->ADCRate == ADCRATE_1P6MHZ && pFilterInfo->ADCSinc3Osr != ADCSINC3OSR_2))
+  {
+    //this combination suits for filter:
+    //SINC3 OSR2, for 800kSPS
+    //and SINC3 OSR4 and OSR5 for 1.6MSPS,
+    const uint8_t available_sinc2_osr[] = {ADCSINC2OSR_667, ADCSINC2OSR_1333};
+    const uint8_t dl_60Hz[] = {10,5};
+    uint8_t index;
+    if(_is_value_in_table(pFilterInfo->ADCSinc2Osr, available_sinc2_osr, sizeof(available_sinc2_osr), &index))
+    {
+      *dl = dl_60Hz[index];
+      return bTRUE;
+    }
+  }
+  else if(pFilterInfo->ADCRate == ADCRATE_1P6MHZ && pFilterInfo->ADCSinc3Osr == ADCSINC3OSR_2)
+  {
+    //this combination suits for filter:
+    //SINC3 OSR2 for 1.6MSPS
+    const uint8_t available_sinc2_osr[] = {ADCSINC2OSR_889, ADCSINC2OSR_1333};
+    const uint8_t dl_60Hz[] = {15,10};
+    uint8_t index;
+    if(_is_value_in_table(pFilterInfo->ADCSinc2Osr, available_sinc2_osr, sizeof(available_sinc2_osr), &index))
+    {
+      *dl = dl_60Hz[index];
+      return bTRUE;
+    }
+  }
+  else if(pFilterInfo->ADCRate == ADCRATE_800KHZ && pFilterInfo->ADCSinc3Osr != ADCSINC3OSR_2)
+  {
+    //this combination suits for filter:
+    //SINC3 OSR4 and OSR5 for 800kSPS,
+    const uint8_t available_sinc2_osr[] = {ADCSINC2OSR_178, ADCSINC2OSR_267, ADCSINC2OSR_533, ADCSINC2OSR_667,\
+                                    ADCSINC2OSR_889, ADCSINC2OSR_1333};
+    const uint8_t dl_60Hz[] = {15,10,5,4,3,2};
+    uint8_t index;
+    if(_is_value_in_table(pFilterInfo->ADCSinc2Osr, available_sinc2_osr, sizeof(available_sinc2_osr), &index))
+    {
+      *dl = dl_60Hz[index];
+      return bTRUE;
+    }
+  }
+  *dl = 0;
+  return bFALSE;
+}
+
+/**
+ * @brief Calculate how much clocks are needed in sequencer wait command to generate required number of data from filter output.
  * @param pFilterInfo: Pointer to configuration structure. 
  * @param pClocks: pointer used to store results.         
  * @return return none.
@@ -354,9 +478,9 @@ uint32_t AD5940_SEQCycleTime(void)
 void AD5940_ClksCalculate(ClksCalInfo_Type *pFilterInfo, uint32_t *pClocks)
 {
   uint32_t temp = 0;
-  const uint32_t sin2osr_table[] = {22,44,89,178,267,533,640,667,800,889,1067,1333,0};
+  const uint32_t sinc2osr_table[] = {22,44,89,178,267,533,640,667,800,889,1067,1333,0};
   const uint32_t sinc3osr_table[] = {5,4,2,0};
-  
+
   *pClocks = 0;
   if(pFilterInfo == NULL) return;
   if(pClocks == NULL) return;
@@ -372,13 +496,34 @@ void AD5940_ClksCalculate(ClksCalInfo_Type *pFilterInfo, uint32_t *pClocks)
       temp = (uint32_t)(((pFilterInfo->DataCount+2)*sinc3osr_table[pFilterInfo->ADCSinc3Osr]+1)*20*pFilterInfo->RatioSys2AdcClk + 0.5f);
       break;
     case DATATYPE_SINC2: 
-      temp = (pFilterInfo->DataCount+1)*sin2osr_table[pFilterInfo->ADCSinc2Osr] + 1;
+      temp = (pFilterInfo->DataCount+1)*sinc2osr_table[pFilterInfo->ADCSinc2Osr] + 1;
       pFilterInfo->DataType = DATATYPE_SINC3;
       pFilterInfo->DataCount = temp;
       AD5940_ClksCalculate(pFilterInfo, &temp);
       pFilterInfo->DataType = DATATYPE_SINC2;
       temp += 15;   /* Need extra 15 clocks for FIFO etc. Just to be safe. */
       break;
+    case DATATYPE_NOTCH:
+    {
+      ADCFilterCfg_Type filter;
+      filter.ADCRate = pFilterInfo->ADCRate;
+      filter.ADCSinc3Osr = pFilterInfo->ADCSinc3Osr;
+      filter.ADCSinc2Osr = pFilterInfo->ADCSinc2Osr;
+      uint8_t dl=0, dl_50, dl_60;
+      if(AD5940_Notch50HzAvailable(&filter, &dl_50)){
+        dl += dl_50 - 1;
+      }
+      if(AD5940_Notch60HzAvailable(&filter, &dl_60)){
+        dl += dl_60 - 1;
+      }
+      pFilterInfo->DataType = DATATYPE_SINC2;
+      pFilterInfo->DataCount += dl; //DL is the extra data input needed for filter to output first data.
+      AD5940_ClksCalculate(pFilterInfo,&temp);
+      //restore the filter info.
+      pFilterInfo->DataType = DATATYPE_NOTCH;
+      pFilterInfo->DataCount -= dl;
+      break;
+    }
     case DATATYPE_DFT:
       switch(pFilterInfo->DftSrc)
       {
@@ -391,7 +536,10 @@ void AD5940_ClksCalculate(ClksCalInfo_Type *pFilterInfo, uint32_t *pClocks)
           AD5940_ClksCalculate(pFilterInfo, &temp);
           break;
         case DFTSRC_SINC2NOTCH:
-          pFilterInfo->DataType = DATATYPE_SINC2;
+          if(pFilterInfo->BpNotch)
+            pFilterInfo->DataType = DATATYPE_SINC2;
+          else
+            pFilterInfo->DataType = DATATYPE_NOTCH;
           AD5940_ClksCalculate(pFilterInfo, &temp);
           break;
         case DFTSRC_AVG:
