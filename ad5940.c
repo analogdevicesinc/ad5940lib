@@ -470,7 +470,9 @@ BoolFlag AD5940_Notch60HzAvailable(ADCFilterCfg_Type *pFilterInfo, uint8_t *dl)
 }
 
 /**
- * @brief Calculate how much clocks are needed in sequencer wait command to generate required number of data from filter output.
+ * @brief Calculate how many clocks are needed in sequencer wait command to generate required number of data from filter output.
+ * @note When measurement is done, it's recommend to disable blocks like ADCPWR, ADCCNV, SINC2, DFT etc. If blocks remain powered up,
+ *       they may need less clocks to generate required number of output. Use function @ref AD5940_AFECtrlS to control these blocks.
  * @param pFilterInfo: Pointer to configuration structure. 
  * @param pClocks: pointer used to store results.         
  * @return return none.
