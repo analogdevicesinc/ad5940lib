@@ -3727,14 +3727,6 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
   }
   else
   {
-    SEQCfg_Type seq_cfg, seq_cfg_backup;  /* Use sequencer to measure */
-    SEQInfo_Type seqinfo, seqinfo_backup;
-    const uint32_t SeqTakeMeasurment[3] = 
-    {
-      SEQ_WR(REG_AFE_AFECON, 0x00014c80), /* WG and ADC ON */
-      SEQ_WAIT(250*16),
-      SEQ_WR(REG_AFE_AFECON, 0x0001cd80), /* ADCCNV and DFT ON */
-    };
 		hs_loop.WgCfg.SinCfg.SinAmplitudeWord = WgAmpWord;
 		hs_loop.WgCfg.SinCfg.SinFreqWord = AD5940_WGFreqWordCal(pCalCfg->fFreq, pCalCfg->SysClkFreq);
 		hs_loop.WgCfg.SinCfg.SinOffsetWord = 0;
@@ -3745,27 +3737,6 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
     hs_loop.WgCfg.OffsetCalEn = bFALSE;
     AD5940_HSLoopCfgS(&hs_loop);
     AD5940_INTCClrFlag(AFEINTSRC_DFTRDY);
-    /* Configure sequencer, we use sequencer to control WG and DFT to ensure phase accuracy.
-    --> to ensure we delayed same time for both RCAL/RTIA measurement before turn on DFT. 
-    --> RCAL: WG ON --> Delay time -->DFT ON
-    --> RTIA: WG ON --> DealySameTime-->DFT ON
-    --> Phase accuracy --> good
-    */
-    AD5940_SEQGetCfg(&seq_cfg_backup);
-    AD5940_SEQInfoGet(SEQID_3, &seqinfo_backup);
-    seq_cfg.SeqMemSize = SEQMEMSIZE_2KB;  /* 2kB SRAM is used for sequencer */
-    seq_cfg.SeqBreakEn = bFALSE;
-    seq_cfg.SeqIgnoreEn = bFALSE;
-    seq_cfg.SeqCntCRCClr = bFALSE;
-    seq_cfg.SeqEnable = bTRUE;
-    seq_cfg.SeqWrTimer = 0;
-    AD5940_SEQCfg(&seq_cfg);          /* Enable sequencer */
-    seqinfo.pSeqCmd = SeqTakeMeasurment;
-    seqinfo.SeqId = SEQID_3;          /* We use SINC3 for calibration. */
-    seqinfo.SeqLen = SEQ_LEN(SeqTakeMeasurment);
-    seqinfo.SeqRamAddr = 0;           /* */
-    seqinfo.WriteSRAM = bTRUE;
-    AD5940_SEQInfoCfg(&seqinfo); 
 
     AD5940_AFECtrlS(AFECTRL_HSTIAPWR|AFECTRL_INAMPPWR, bTRUE);
     AD5940_Delay10us(100);      /* Wait for loop stable. */
@@ -3775,14 +3746,9 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
     pADCBaseCfg->ADCMuxP = ADCMUXP_P_NODE;
     pADCBaseCfg->ADCPga = ADCPgaGainRcal;
     AD5940_ADCBaseCfgS(pADCBaseCfg);
-    /**
-     * Sequencer's job:
-     * 1. Turn ON waveform generator and ADC power
-     * 2. Wait 250us so the ADC is settled down.(ADC need 50us. We add extra 200us.)
-     * 3. Start ADC conversion and DFT. 
-     * Sequencer is used to start the DFT, then we wait until DFT results are ready.
-    */
-    AD5940_SEQMmrTrig(SEQID_3);
+    AD5940_AFECtrlS(AFECTRL_ADCPWR|AFECTRL_WG, bTRUE);
+    AD5940_Delay10us(25);
+    AD5940_AFECtrlS(AFECTRL_ADCCNV|AFECTRL_DFT, bTRUE);
     /* Wait until DFT ready */
     while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_DFTRDY) == bFALSE);  
     AD5940_AFECtrlS(AFECTRL_ADCCNV|AFECTRL_DFT|AFECTRL_WG|AFECTRL_ADCPWR, bFALSE);  /* Stop ADC convert and DFT */
@@ -3801,7 +3767,9 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
     }
     pADCBaseCfg->ADCPga = ADCPgaGainRtia;
     AD5940_ADCBaseCfgS(pADCBaseCfg);
-    AD5940_SEQMmrTrig(SEQID_3);
+    AD5940_AFECtrlS(AFECTRL_ADCPWR|AFECTRL_WG, bTRUE);
+    AD5940_Delay10us(25);
+    AD5940_AFECtrlS(AFECTRL_ADCCNV|AFECTRL_DFT, bTRUE);
     /* Wait until DFT ready */
     while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_DFTRDY) == bFALSE);  
     AD5940_AFECtrlS(AFECTRL_ADCCNV|AFECTRL_DFT|AFECTRL_WG|AFECTRL_ADCPWR, bFALSE);  /* Stop ADC convert and DFT */
@@ -3816,10 +3784,6 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
       DftRtia.Real |= 0xfffc0000;
     if(DftRtia.Image&(1L<<17))
       DftRtia.Image |= 0xfffc0000;
-    /* Restore sequencer settings. */
-    AD5940_SEQCtrlS(bFALSE);  /* Disable Sequencer firstly before re-configure it. */
-    AD5940_SEQInfoCfg(&seqinfo_backup);
-    AD5940_SEQCfg(&seq_cfg_backup);
   }
   /*
       The impedance engine inside of AD594x give us Real part and Imaginary part of DFT. Due to technology used, the Imaginary 

@@ -4570,7 +4570,6 @@ typedef struct
   float AdcClkFreq;           /**< The real frequency of ADC clock */   
 
   uint32_t LpAmpSel;          /**< Select from LPAMP0 and LPAMP1. LPAMP1 is only available on ADuCM355. */
-  uint32_t CalSeqAddr;        /**< Sequencer is used for calibration, sepecify the available address for calibration-sequence */
   BoolFlag bWithCtia;         /**< Connect external CTIA or not. */
   uint32_t LpTiaRtia;         /**< LPTIA RTIA selection. */
   uint32_t LpAmpPwrMod;       /**< Amplifiers power mode setting */
