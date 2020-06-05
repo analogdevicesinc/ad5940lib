@@ -16,6 +16,11 @@
 #include "math.h"
 #include "string.h"
 #include "stdio.h"
+
+#ifdef __cplusplus 
+extern "C" { 
+#endif
+
 /** @addtogroup AD5940_Library
   * @{
   */
@@ -33,7 +38,11 @@
 #define AD5940LIB_VER_PATCH       1    /**< Path number */
 #define AD5940LIB_VER   (AD5940LIB_VER_MAJOR<<16)|(AD5940LIB_VER_MINOR<<8)|(AD5940LIB_VER_PATCH)
 
-#define ADI_DEBUG   /**< Comment this line to remove debug info. */
+/** 
+ * Print ADI debug info
+ * Recommend to define this in your compiler.
+ * */
+//#define ADI_DEBUG   /**< Comment this line to remove debug info. */
 
 #ifdef ADI_DEBUG
 #define ADI_Print printf   /**< Select the method to print out debug message */
@@ -4915,5 +4924,8 @@ uint32_t  AD5940_MCUResourceInit(void *pCfg);
 /**
   * @} AD5940_Library
   */
-
+#ifdef __cplusplus 
+} 
 #endif
+#endif
+
