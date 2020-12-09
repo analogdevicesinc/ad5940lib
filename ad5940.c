@@ -773,6 +773,65 @@ float AD5940_ComplexPhase(fImpCar_Type *a)
 }
 
 /**
+ * @brief Calculate the optimum filter settings based on signal frequency.
+ * @param freq: Frequency of signalr.
+ * @return Return FreqParams.
+**/
+FreqParams_Type AD5940_GetFreqParameters(float freq)
+{
+	const uint32_t dft_table[] = {4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384};
+	const uint32_t sinc2osr_table[] = {1, 22,44,89,178,267,533,640,667,800,889,1067,1333};
+  const uint32_t sinc3osr_table[] = {2, 4, 5};
+	float AdcRate = 800000;
+	uint32_t n1 = 0;	// Sample rate after ADC filters
+	uint32_t n2 = 0; // Sample rate after DFT block
+	uint32_t iCycle = 0;
+	FreqParams_Type freq_params;
+	/* High power mode */
+	if(freq >= 80000)
+	{
+		freq_params. DftSrc = DFTSRC_SINC3;
+		freq_params.ADCSinc2Osr = 0;
+		freq_params.ADCSinc3Osr = 2;
+		freq_params.DftNum = DFTNUM_2048;
+		freq_params.NumClks = 0;
+		freq_params.HighPwrMode = bTRUE;
+		return freq_params;		
+	}
+	
+	/* Start with SINC2 setting */
+	for(uint8_t i = 0; i<sizeof(sinc2osr_table) / sizeof(uint32_t); i++)
+	{
+		n1 = sinc2osr_table[i] * sinc3osr_table[1];
+		if(((AdcRate/n1) < freq * 10) && (freq<20e3))
+			continue;
+		
+		/* Try DFT number */
+		for(uint32_t j = 8; j<sizeof(dft_table) / sizeof(uint32_t); j++)
+		{
+			n2 = dft_table[j];
+			iCycle = (uint32_t)(n1 * n2 * freq)/AdcRate;
+			if(iCycle < 8)
+				continue;
+			freq_params. DftSrc = DFTSRC_SINC2NOTCH;
+			freq_params.ADCSinc2Osr = i-1;
+			freq_params.ADCSinc3Osr = 1;
+			freq_params.DftNum = j;
+			freq_params.NumClks = 0;
+			freq_params.HighPwrMode = bFALSE;
+			if(n1 == 4)
+			{
+				freq_params. DftSrc = DFTSRC_SINC3;
+				freq_params.ADCSinc2Osr = 0;
+			}
+			return freq_params;
+		}
+	}
+		
+	return freq_params;
+}
+
+/**
  * @} Function_Helpers
 */
 

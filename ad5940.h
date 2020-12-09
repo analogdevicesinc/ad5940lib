@@ -16,11 +16,6 @@
 #include "math.h"
 #include "string.h"
 #include "stdio.h"
-
-#ifdef __cplusplus 
-extern "C" { 
-#endif
-
 /** @addtogroup AD5940_Library
   * @{
   */
@@ -38,10 +33,6 @@ extern "C" {
 #define AD5940LIB_VER_PATCH       1    /**< Path number */
 #define AD5940LIB_VER   (AD5940LIB_VER_MAJOR<<16)|(AD5940LIB_VER_MINOR<<8)|(AD5940LIB_VER_PATCH)
 
-/** 
- * Print ADI debug info
- * Recommend to define this in your compiler.
- * */
 //#define ADI_DEBUG   /**< Comment this line to remove debug info. */
 
 #ifdef ADI_DEBUG
@@ -4748,6 +4739,19 @@ typedef struct
 }iImpCar_Type;
 
 /**
+ *  FreqParams_Type - Structure to store optimum filter settings 
+*/
+typedef struct
+{
+	BoolFlag HighPwrMode;
+	uint32_t DftNum;
+	uint32_t DftSrc;
+	uint32_t ADCSinc3Osr;
+	uint32_t ADCSinc2Osr;
+	uint32_t NumClks;
+}FreqParams_Type;
+
+/**
  * @} TypeDefinitions
 */
 
@@ -4892,6 +4896,7 @@ fImpCar_Type AD5940_ComplexDivInt(iImpCar_Type *a, iImpCar_Type *b);
 fImpCar_Type AD5940_ComplexMulInt(iImpCar_Type *a, iImpCar_Type *b);
 float     AD5940_ComplexMag(fImpCar_Type *a);
 float     AD5940_ComplexPhase(fImpCar_Type *a);
+FreqParams_Type AD5940_GetFreqParameters(float freq);
 /**
  * @} Exported_Functions
 */
@@ -4915,7 +4920,6 @@ void      AD5940_ReadWriteNBytes(unsigned char *pSendBuffer,unsigned char *pRecv
 uint32_t  AD5940_GetMCUIntFlag(void);
 uint32_t  AD5940_ClrMCUIntFlag(void);
 uint32_t  AD5940_MCUResourceInit(void *pCfg);
-
 /**
  * @} Library_Interface
 */
@@ -4924,8 +4928,5 @@ uint32_t  AD5940_MCUResourceInit(void *pCfg);
 /**
   * @} AD5940_Library
   */
-#ifdef __cplusplus 
-} 
-#endif
-#endif
 
+#endif
