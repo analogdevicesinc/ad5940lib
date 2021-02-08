@@ -4831,6 +4831,7 @@ AD5940Err AD5940_WUPTTime(uint32_t SeqId, uint32_t SleepTime, uint32_t WakeupTim
 /* 7.1 Clock system */
 void      AD5940_CLKCfg(CLKCfg_Type *pClkCfg);
 void      AD5940_HFOSC32MHzCtrl(BoolFlag Mode32MHz);
+void 			AD5940_HPModeEn(BoolFlag Enable);	/* Switch system clocks to high power mode for EIS >80kHz)*/
 /* 7.2 AFE Interrupt */
 void      AD5940_INTCCfg(uint32_t AfeIntcSel, uint32_t AFEIntSrc, BoolFlag State);
 uint32_t  AD5940_INTCGetCfg(uint32_t AfeIntcSel);

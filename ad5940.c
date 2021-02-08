@@ -788,12 +788,23 @@ FreqParams_Type AD5940_GetFreqParameters(float freq)
 	uint32_t iCycle = 0;
 	FreqParams_Type freq_params;
 	/* High power mode */
-	if(freq >= 80000)
+	if(freq >= 20000)
 	{
 		freq_params. DftSrc = DFTSRC_SINC3;
 		freq_params.ADCSinc2Osr = 0;
 		freq_params.ADCSinc3Osr = 2;
-		freq_params.DftNum = DFTNUM_2048;
+		freq_params.DftNum = DFTNUM_8192;
+		freq_params.NumClks = 0;
+		freq_params.HighPwrMode = bTRUE;
+		return freq_params;		
+	}
+	
+	if(freq < 0.51)
+	{
+		freq_params. DftSrc = DFTSRC_SINC2NOTCH;
+		freq_params.ADCSinc2Osr = 6;
+		freq_params.ADCSinc3Osr = 1;
+		freq_params.DftNum = DFTNUM_8192;
 		freq_params.NumClks = 0;
 		freq_params.HighPwrMode = bTRUE;
 		return freq_params;		
@@ -2578,7 +2589,40 @@ void AD5940_HFOSC32MHzCtrl(BoolFlag Mode32MHz)
 
   AD5940_WriteReg(REG_AFECON_CLKEN1,RdCLKEN1&(~BITM_AFECON_CLKEN1_ACLKDIS)); /* Enable ACLK */
 }
-
+/**
+ * @brief Enable high power mode for high frequency EIS
+ * @param Mode32MHz : {bTRUE, bFALSE}
+ *        - bTRUE: HFOSC 32MHz mode.
+ *        - bFALSE: HFOSC 16MHz mode.
+ * @return return none.
+*/
+void 			AD5940_HPModeEn(BoolFlag Enable)
+{
+	CLKCfg_Type clk_cfg;
+	uint32_t temp_reg = 0;
+	
+	/* Check what the system clock is */
+	temp_reg = AD5940_ReadReg(REG_AFECON_CLKSEL);
+	clk_cfg.ADCCLkSrc = (temp_reg>>2)&0x3; 
+  clk_cfg.SysClkSrc = temp_reg & 0x3; 
+	if(Enable == bTRUE)
+	{
+		clk_cfg.SysClkDiv = SYSCLKDIV_2;
+		clk_cfg.HfOSC32MHzMode = bTRUE;
+		AD5940_AFEPwrBW(AFEPWR_HP, AFEBW_250KHZ);
+	}
+	else
+	{
+		clk_cfg.SysClkDiv = SYSCLKDIV_1;
+		clk_cfg.HfOSC32MHzMode = bFALSE;
+		AD5940_AFEPwrBW(AFEPWR_LP, AFEBW_100KHZ);
+	}
+    clk_cfg.ADCClkDiv = ADCCLKDIV_1;       
+    clk_cfg.HFOSCEn = (temp_reg & 0x3) == 0x1? bFALSE : bTRUE;;
+	clk_cfg.HFXTALEn = (temp_reg & 0x3) == 0x1? bTRUE : bFALSE;
+    clk_cfg.LFOSCEn = bTRUE;
+    AD5940_CLKCfg(&clk_cfg);
+}
 
 /**
  * @defgroup Interrupt_Controller_Functions
