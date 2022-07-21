@@ -547,7 +547,7 @@ void AD5940_ClksCalculate(ClksCalInfo_Type *pFilterInfo, uint32_t *pClocks)
           break;
         case DFTSRC_AVG:
           pFilterInfo->DataType = DATATYPE_SINC3;
-          pFilterInfo->DataCount *= 1UL<<(pFilterInfo->ADCAvgNum+1); /* 0: average2, 1: average4, 2: average8, 3: average16 */
+          pFilterInfo->DataCount *= (uint32_t)1UL<<(pFilterInfo->ADCAvgNum+1); /* 0: average2, 1: average4, 2: average8, 3: average16 */
           AD5940_ClksCalculate(pFilterInfo, &temp);
           break;
         default:
@@ -3218,7 +3218,7 @@ AD5940Err AD5940_ADCPGACal(ADCPGACal_Type *pADCPGACal)
       hsloop_cfg.WgCfg.GainCalEn = bTRUE;
       hsloop_cfg.WgCfg.OffsetCalEn = bTRUE;
       hsloop_cfg.WgCfg.WgType = WGTYPE_MMR;
-      uint32_t HSDACCode;
+      uint32_t HSDACCode = 0x800;
       if(pADCPGACal->ADCPga == ADCPGA_4)
         HSDACCode = 0x800 + 0x300;  /* 0x300--> 0x300/0x1000*0.8*BUFFERGAIN2 = 0.3V. */
       else if(pADCPGACal->ADCPga == ADCPGA_9)
@@ -4342,7 +4342,7 @@ AD5940Err AD5940_LFOSCMeasure(LFOSCMeasure_Type *pCfg, float *pFreq) /* Measure 
   seqinfo.WriteSRAM = bTRUE;
   AD5940_SEQInfoCfg(&seqinfo);
   seqinfo.SeqId = SEQID_1;
-  seqinfo.SeqRamAddr = pCfg->CalSeqAddr + SEQ_LEN(SeqA) ;
+  seqinfo.SeqRamAddr = (uint32_t)(pCfg->CalSeqAddr + SEQ_LEN(SeqA));
   seqinfo.SeqLen = SEQ_LEN(SeqB);
   seqinfo.pSeqCmd = SeqB;
   AD5940_SEQInfoCfg(&seqinfo);      /* Configure sequence0 and sequence1 with command SeqA and SeqB */
@@ -4367,7 +4367,7 @@ AD5940Err AD5940_LFOSCMeasure(LFOSCMeasure_Type *pCfg, float *pFreq) /* Measure 
   AD5940_WUPTCtrl(bFALSE);
 	AD5940_WUPTTime(SEQID_0, 4, 4);	/* Set it to minimum value because we don't care about sequence0 now. We only want to measure how much time MCU will need to read register */
   seqinfo.SeqId = SEQID_1;
-  seqinfo.SeqRamAddr = pCfg->CalSeqAddr + SEQ_LEN(SeqA) ;
+  seqinfo.SeqRamAddr = (uint32_t)(pCfg->CalSeqAddr + SEQ_LEN(SeqA));
   seqinfo.SeqLen = SEQ_LEN(SeqBB);
   seqinfo.pSeqCmd = SeqBB;
   seqinfo.WriteSRAM = bTRUE;
