@@ -929,7 +929,19 @@ static uint32_t AD5940_ReadWrite32B(uint32_t data)
    AD5940_ReadWriteNBytes(SendBuffer,RecvBuffer,4);
    return (((uint32_t)RecvBuffer[0])<<24)|(((uint32_t)RecvBuffer[1])<<16)|(((uint32_t)RecvBuffer[2])<<8)|RecvBuffer[3];
 }
+#ifdef SPI_ZEPHYR_LIB
 
+static void AD5940_SPIWriteReg(uint16_t RegAddr, uint32_t RegData)
+{
+    AD5940_SPIWriteReg2(RegAddr, RegData);  
+}
+
+static uint32_t AD5940_SPIReadReg(uint16_t RegAddr)
+{
+    return AD5940_SPIReadReg2(RegAddr);  
+}
+#endif
+#ifdef SPI_ADLIB
 /**
  * @brief Write register through SPI.
  * @param RegAddr: The register address.
@@ -978,51 +990,16 @@ static uint32_t AD5940_SPIReadReg(uint16_t RegAddr)
   AD5940_CsSet();
   return Data;
 }
+#endif
 
-/**
-  @brief Read specific number of data from FIFO with optimized SPI access.
-  @param pBuffer: Pointer to a buffer that used to store data read back.
-  @param uiReadCount: How much data to be read.
-  @return none.
-**/
 void AD5940_FIFORd(uint32_t *pBuffer, uint32_t uiReadCount)   
 {
   /* Use function AD5940_SPIReadReg to read REG_AFE_DATAFIFORD is also one method. */
    uint32_t i;
    
-   if(uiReadCount < 3)
+   for(i=0;i<uiReadCount;i++)
    {
-      /* This method is more efficient when readcount < 3 */
-      uint32_t i;
-      AD5940_CsClr();
-      AD5940_ReadWrite8B(SPICMD_SETADDR);
-      AD5940_ReadWrite16B(REG_AFE_DATAFIFORD);
-      AD5940_CsSet();
-      for(i=0;i<uiReadCount;i++)
-      {
-         AD5940_CsClr();
-         AD5940_ReadWrite8B(SPICMD_READREG);
-         AD5940_ReadWrite8B(0);//Write Host status/Don't care
-         pBuffer[i] = AD5940_ReadWrite32B(0);
-         AD5940_CsSet();
-      }
-   }
-   else
-   {
-      AD5940_CsClr();
-      AD5940_ReadWrite8B(SPICMD_READFIFO);
-      /* 6 dummy write before valid data read back */
-      for(i=0;i<6;i++)
-         AD5940_ReadWrite8B(0);
-      /* Continuously read DATAFIFORD register with offset 0 */
-      for(i=0;i<uiReadCount-2;i++)
-      {
-         pBuffer[i] = AD5940_ReadWrite32B(0); /*Offset is 0, so we always read DATAFIFORD register */
-      }
-      /* Read back last two FIFO data with none-zero offset*/
-      pBuffer[i++] = AD5940_ReadWrite32B(0x44444444);
-      pBuffer[i] = AD5940_ReadWrite32B(0x44444444);
-      AD5940_CsSet();
+      pBuffer[i] = AD5940_SPIReadReg(REG_AFE_DATAFIFORD);
    }
 }
 
@@ -1129,9 +1106,7 @@ void AD5940_Initialize(void)
   SeqGenDB.RegCount = 0;
   SeqGenDB.LastError = AD5940ERR_OK;
   SeqGenDB.EngineStart = bFALSE;
-#ifndef CHIPSEL_M355
-  AD5940_CsSet(); /* Pull high CS in case it's low */
-#endif
+
   for(i=0; i<sizeof(RegTable)/sizeof(RegTable[0]); i++)
     AD5940_WriteReg(RegTable[i].reg_addr, RegTable[i].reg_data);
   i = AD5940_ReadReg(REG_AFECON_CHIPID);  

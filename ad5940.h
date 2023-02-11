@@ -25,7 +25,7 @@
  * Recommend to define this in your compiler.
  * */
 //#define CHIPSEL_M355      /**< ADuCM355 */
-//#define CHIPSEL_594X      /**< AD5940 or AD5941 */
+#define CHIPSEL_594X      /**< AD5940 or AD5941 */
 
 /* library version number */
 #define AD5940LIB_VER_MAJOR       0    /**< Major number */
@@ -33,7 +33,10 @@
 #define AD5940LIB_VER_PATCH       1    /**< Path number */
 #define AD5940LIB_VER   (AD5940LIB_VER_MAJOR<<16)|(AD5940LIB_VER_MINOR<<8)|(AD5940LIB_VER_PATCH)
 
-//#define ADI_DEBUG   /**< Comment this line to remove debug info. */
+//#define SPI_ADLIB
+#define SPI_ZEPHYR_LIB
+
+#define ADI_DEBUG   /**< Comment this line to remove debug info. */
 
 #ifdef ADI_DEBUG
 #define ADI_Print printf   /**< Select the method to print out debug message */
@@ -4762,6 +4765,8 @@ typedef struct
 /* 1. Basic SPI functions */
 void      AD5940_WriteReg(uint16_t RegAddr, uint32_t RegData);
 uint32_t  AD5940_ReadReg(uint16_t RegAddr);
+void      AD5940_WriteReg2(uint16_t RegAddr, uint32_t RegData);
+uint32_t  AD5940_ReadReg2(uint16_t RegAddr);
 void      AD5940_FIFORd(uint32_t *pBuffer,uint32_t uiReadCount);
 
 /* 2. AD5940 Top Control functions */
