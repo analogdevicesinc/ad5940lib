@@ -4770,7 +4770,7 @@ uint32_t  AD5940_ReadReg2(uint16_t RegAddr);
 void      AD5940_FIFORd(uint32_t *pBuffer,uint32_t uiReadCount);
 
 /* 2. AD5940 Top Control functions */
-void      AD5940_Initialize(void); /* Call this function firstly once AD5940 power on or come from soft reset */
+int       AD5940_Initialize(void); /* Call this function firstly once AD5940 power on or come from soft reset */
 void      AD5940_AFECtrlS(uint32_t AfeCtrlSet, BoolFlag State);
 AD5940Err AD5940_LPModeCtrlS(uint32_t EnSet);
 void      AD5940_AFEPwrBW(uint32_t AfePwr, uint32_t AfeBw); /* AFE power mode and system bandwidth control */

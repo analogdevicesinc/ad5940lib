@@ -1068,7 +1068,7 @@ uint32_t AD5940_ReadReg(uint16_t RegAddr)
  *        This function is used to put AD5940 to correct state.
  * @return return None
 **/
-void AD5940_Initialize(void)
+int AD5940_Initialize(void)
 {
   int i;
   /* Write following registers with its data sequentially whenever there is a reset happened. */
@@ -1119,17 +1119,24 @@ void AD5940_Initialize(void)
 #ifdef ADI_DEBUG
   else
   {
-    printf("CHIPID read error:0x%04x. AD5940 is not present?\n", i);
-    while(1);
+    #ifdef PRINT_ON
+      printf("CHIPID read error:0x%04x. AD5940 is not present?\n", i);
+    #endif
+    return -1;
   }
 #ifdef CHIPSEL_M355
   ADI_Print("This ADuCM355!\n");
 #else
-  ADI_Print("This AD594x!\n");
+  #ifdef PRINT_ON
+    ADI_Print("This AD594x!\n");
+  #endif
 #endif
-  ADI_Print("Note: Current Silicon is %s\n", bIsS2silicon?"S2":"S1");
-  ADI_Print("AD5940LIB Version:v%d.%d.%d\n", AD5940LIB_VER_MAJOR, AD5940LIB_VER_MINOR, AD5940LIB_VER_PATCH);
+  #ifdef PRINT_ON
+    ADI_Print("Note: Current Silicon is %s\n", bIsS2silicon?"S2":"S1");
+    ADI_Print("AD5940LIB Version:v%d.%d.%d\n", AD5940LIB_VER_MAJOR, AD5940LIB_VER_MINOR, AD5940LIB_VER_PATCH);
+  #endif
 #endif
+  return 0; 
 }
 
 /**
