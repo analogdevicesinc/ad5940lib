@@ -134,7 +134,7 @@ static AD5940Err AD5940_SEQGenSearchReg(uint32_t RegAddr, uint32_t *pIndex)
   uint32_t i;
 
   RegAddr = (RegAddr>>2)&0xff;
-  for(i=0;i<SeqGenDB.RegCount;i++)
+  for(i=0;i<SeqGenDB.SeqLen;i++)
   {
     if(RegAddr == SeqGenDB.pRegInfo[i].RegAddr)
     {
@@ -3412,10 +3412,10 @@ AD5940Err AD5940_HSRtiaCal(HSRTIACal_Type *pCalCfg, void *pResult)
   if(pCalCfg == NULL) return AD5940ERR_NULLP;
   if(pCalCfg->fRcal == 0)
     return AD5940ERR_PARA;
-  if(pCalCfg->HsTiaCfg.HstiaRtiaSel > HSTIARTIA_160K)
-    return AD5940ERR_PARA;
-  if(pCalCfg->HsTiaCfg.HstiaRtiaSel == HSTIARTIA_OPEN)
-    return AD5940ERR_PARA; /* Do not support calibrating DE0-RTIA */
+  //if(pCalCfg->HsTiaCfg.HstiaRtiaSel > HSTIARTIA_160K)
+  //  return AD5940ERR_PARA;
+  //if(pCalCfg->HsTiaCfg.HstiaRtiaSel == HSTIARTIA_OPEN)
+   // return AD5940ERR_PARA; /* Do not support calibrating DE0-RTIA */
   if(pResult == NULL)
       return AD5940ERR_NULLP;
 
@@ -3423,7 +3423,10 @@ AD5940Err AD5940_HSRtiaCal(HSRTIACal_Type *pCalCfg, void *pResult)
     bADCClk32MHzMode = bTRUE; 
 
   /* Calculate the excitation voltage we should use based on RCAL/Rtia */
-  RtiaVal = HpRtiaTable[pCalCfg->HsTiaCfg.HstiaRtiaSel];
+  if(pCalCfg->HsTiaCfg.HstiaRtiaSel == HSTIARTIA_OPEN)
+    RtiaVal = pCalCfg->HsTiaCfg.ExtRtia + pCalCfg->HsTiaCfg.HstiaDeRload; 
+  else
+    RtiaVal = HpRtiaTable[pCalCfg->HsTiaCfg.HstiaRtiaSel];
   /*
     DAC output voltage calculation
     Note: RCAL value should be similar to RTIA so the accuracy is best.
@@ -3494,7 +3497,7 @@ AD5940Err AD5940_HSRtiaCal(HSRTIACal_Type *pCalCfg, void *pResult)
   hs_loop.SWMatCfg.Dswitch = SWD_RCAL0;
   hs_loop.SWMatCfg.Pswitch = SWP_RCAL0;
   hs_loop.SWMatCfg.Nswitch = SWN_RCAL1;
-  hs_loop.SWMatCfg.Tswitch = SWT_RCAL1|SWT_TRTIA;
+  hs_loop.SWMatCfg.Tswitch = SWT_RCAL1|SWT_TRTIA|SWT_AIN1;
   hs_loop.WgCfg.WgType = WGTYPE_SIN;
   hs_loop.WgCfg.GainCalEn = bTRUE;
   hs_loop.WgCfg.OffsetCalEn = bTRUE;
@@ -3928,6 +3931,7 @@ AD5940Err AD5940_LPRtiaCal(LPRTIACal_Type *pCalCfg, void *pResult)
   
   return AD5940ERR_OK;
 }
+
 
 /**
  * @brief calibrate HSDAC output voltage using ADC.

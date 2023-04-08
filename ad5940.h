@@ -4262,7 +4262,11 @@ typedef struct
   uint32_t ADCRate;             /**< ADC Core sample rate */
   BoolFlag BpNotch;             /**< Bypass Notch filter in SINC2+Notch block, so only SINC2 is used. ADCFILTERCON.BIT4 */
   BoolFlag BpSinc3;             /**< Bypass SINC3 Module */
+  BoolFlag Sinc3ClkEnable;      /**< Enable SINC3 clock */
+  BoolFlag Sinc2NotchClkEnable; /**< Enable SINC2+Notch clock */
   BoolFlag Sinc2NotchEnable;    /**< Enable SINC2+Notch block */
+  BoolFlag DFTClkEnable;        /**< Enable DFT clock */
+  BoolFlag WGClkEnable;         /**< Enable Waveform Generator clock */
 }ADCFilterCfg_Type;
 /** @} */
 
@@ -4312,6 +4316,7 @@ typedef struct
 {
   uint32_t HstiaBias;         /**< When select Vzero as bias, the related switch(VZERO2HSTIA) at LPDAC should be closed */
   uint32_t HstiaRtiaSel;      /**< RTIA selection @ref HSTIARTIA_Const */
+  uint32_t ExtRtia;      /**< Value of external RTIA*/
   uint32_t HstiaCtia;         /**< Set internal CTIA value from 1 to 32 pF */
   BoolFlag DiodeClose;        /**< Close the switch for internal back to back diode */
   uint32_t HstiaDeRtia;       /**< DE0 node RTIA selection @ref HSTIADERTIA_Const */
