@@ -3405,6 +3405,8 @@ AD5940Err AD5940_HSRtiaCal(HSRTIACal_Type *pCalCfg, void *pResult)
   float ExcitVolt; /* Excitation voltage, unit is mV */
   uint32_t RtiaVal;
   uint32_t const HpRtiaTable[]={200,1000,5000,10000,20000,40000,80000,160000,0};
+  uint32_t const HSTIADERLOADTable[]={0,10,30,50,100,999999999999};
+  uint32_t const HSTIADERTIATable[] = {50,100,200,1000,5000,10000,20000,40000,80000,160000,0,999999999999999};
   uint32_t WgAmpWord;
 
   iImpCar_Type DftRcal, DftRtia;
@@ -3424,7 +3426,16 @@ AD5940Err AD5940_HSRtiaCal(HSRTIACal_Type *pCalCfg, void *pResult)
 
   /* Calculate the excitation voltage we should use based on RCAL/Rtia */
   if(pCalCfg->HsTiaCfg.HstiaRtiaSel == HSTIARTIA_OPEN)
-    RtiaVal = pCalCfg->HsTiaCfg.ExtRtia + pCalCfg->HsTiaCfg.HstiaDeRload; 
+  {
+    if(pCalCfg->HsTiaCfg.HstiaDeRtia == HSTIADERTIA_TODE)
+    {
+      RtiaVal = pCalCfg->HsTiaCfg.ExtRtia;
+    }
+    else
+    {
+      RtiaVal = pCalCfg->HsTiaCfg.ExtRtia + HSTIADERLOADTable[pCalCfg->HsTiaCfg.HstiaDeRload] + HSTIADERTIATable[pCalCfg->HsTiaCfg.HstiaDeRtia];
+    }
+  }
   else
     RtiaVal = HpRtiaTable[pCalCfg->HsTiaCfg.HstiaRtiaSel];
   /*
