@@ -4782,6 +4782,7 @@ void      AD5940_SWMatrixCfgS(SWMatrixCfg_Type *pSwMatrix);
 void      AD5940_HSDacCfgS(HSDACCfg_Type *pHsDacCfg);
 AD5940Err AD5940_HSTIACfgS(HSTIACfg_Type *pHsTiaCfg);
 void      AD5940_HSRTIACfgS(uint32_t HSTIARtia);
+void __AD5940_SetDExRTIA(uint32_t DExPin, uint32_t DeRtia, uint32_t DeRload);
 
 /* 4. Low_Power_Loop Functions*/
 void      AD5940_LPLoopCfgS(LPLoopCfg_Type *pLpLoopCfg);

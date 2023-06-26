@@ -1390,7 +1390,7 @@ void AD5940_HSDacCfgS(HSDACCfg_Type *pHsDacCfg)
 }
 
 
-static void __AD5940_SetDExRTIA(uint32_t DExPin, uint32_t DeRtia, uint32_t DeRload)
+void __AD5940_SetDExRTIA(uint32_t DExPin, uint32_t DeRtia, uint32_t DeRload)
 {
   uint32_t tempreg;
   /* deal with HSTIA DE RTIA */
