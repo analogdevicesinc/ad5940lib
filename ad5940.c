@@ -134,7 +134,7 @@ static AD5940Err AD5940_SEQGenSearchReg(uint32_t RegAddr, uint32_t *pIndex)
   uint32_t i;
 
   RegAddr = (RegAddr>>2)&0xff;
-  for(i=0;i<SeqGenDB.RegCount;i++)
+  for(i=0;i<SeqGenDB.SeqLen;i++)
   {
     if(RegAddr == SeqGenDB.pRegInfo[i].RegAddr)
     {
