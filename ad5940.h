@@ -4414,7 +4414,7 @@ typedef struct
 {
   uint32_t SinFreqWord;       /**< Frequency word */
   uint32_t SinAmplitudeWord;  /**< Amplitude word, range is 0 to 2047. Amplitude range is 0 to 800mV */
-  uint32_t SinOffsetWord;     /**< Offset word, range is 0 to 4095. Offset voltage range is -800 to +800mV */
+  uint32_t SinOffsetWord;     /**< Offset word, range is -2048 to 2047. Offset voltage range is -800 to +800mV */
   uint32_t SinPhaseWord;      /**< the start phase of sine wave. Use to tune start phase of signal. */
 }WGSinCfg_Type;
 
