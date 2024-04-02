@@ -4621,10 +4621,10 @@ typedef struct
  * Voltage(mV) = kC2V_DACxB * Code + bC2V_DACxB; 
  *  where x is 12 or 6 represent 12Bit DAC and 6Bit DAC. C2V means code to voltage.
  *  Code is the data register value for LPDAC. The equation gives real output voltage of LPDAC.    
- * Similarly, Code(LSB) = kV2C_DACxB * Voltage(mV) + bC2V_DAC12B;
+ * Similarly, Code(LSB) = kV2C_DACxB * Voltage(mV) + bV2C_DACxB;
  * 
  * Apparently, kV2C_DACxB = 1/kC2V_DACxB;
- *             bC2V_DACxB = -bC2V_DACxB/kC2V_DACxB;
+ *             bV2C_DACxB = -bC2V_DACxB/kC2V_DACxB;
 */
 typedef struct
 {
