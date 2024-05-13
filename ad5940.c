@@ -4128,6 +4128,9 @@ DACCALERROR_TIMEOUT:
  * @param pCalCfg: pointer to structure.
  * @param pResult: the pointer to save calibration result.
  * @return AD5940ERR_OK if succeed.
+ *LPDACCal() function is added in ad5940.c only to suggest an optional LPDAC calibration sequence.
+ *It is not verified by ADI software team and user may use it at own risk.
+
 **/
 AD5940Err AD5940_LPDACCal(LPDACCal_Type *pCalCfg, LPDACPara_Type *pResult)
 {
