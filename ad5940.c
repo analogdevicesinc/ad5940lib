@@ -4130,7 +4130,6 @@ DACCALERROR_TIMEOUT:
  * @return AD5940ERR_OK if succeed.
  *AD5940_LPDACCal() function is added here only to suggest an optional LPDAC calibration sequence.
  *It is not verified by ADI software team and user may use it at own risk.
-
 **/
 AD5940Err AD5940_LPDACCal(LPDACCal_Type *pCalCfg, LPDACPara_Type *pResult)
 {
