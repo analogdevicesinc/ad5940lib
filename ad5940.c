@@ -2332,9 +2332,9 @@ AD5940Err AD5940_SEQGpioTrigCfg(SeqGpioTrig_Cfg *pSeqGpioTrigCfg)
       if(pin_count < 4) /* EI0CON register */
       {
         bit_position = pin_count*4;
-        reg_ei1con &= ~(0xfL<<bit_position); /* Clear bits */
-        reg_ei1con |= mode << bit_position;
-        reg_ei1con |= en << (bit_position + 3); /* bit offset 3 is the EN bit. */
+        reg_ei0con &= ~(0xfL<<bit_position); /* Clear bits */
+        reg_ei0con |= mode << bit_position;
+        reg_ei0con |= en << (bit_position + 3); /* bit offset 3 is the EN bit. */
       }
       else
       {
@@ -2350,7 +2350,7 @@ AD5940Err AD5940_SEQGpioTrigCfg(SeqGpioTrig_Cfg *pSeqGpioTrigCfg)
       break;
   }
   AD5940_WriteReg(REG_ALLON_EI0CON, reg_ei0con);
-  AD5940_WriteReg(REG_ALLON_EI0CON, reg_ei1con);
+  AD5940_WriteReg(REG_ALLON_EI1CON, reg_ei1con);
   return AD5940ERR_OK;
 }
 
