@@ -4001,11 +4001,11 @@
 #define AGPIO_Pin0                  0x01  /**< AFE GPIO0, only available on AD5940 and AD5941, not ADuCM355 */
 #define AGPIO_Pin1                  0x02  /**< AFE GPIO1, only available on AD5940 and AD5941, not ADuCM355 */
 #define AGPIO_Pin2                  0x04  /**< AFE GPIO2, only available on AD5940 and AD5941, not ADuCM355 */
-#define AGPIO_Pin3                  0x08  /**< AFE GPIO3, only available on AD5941. */
-#define AGPIO_Pin4                  0x10  /**< AFE GPIO4, only available on AD5941. */
-#define AGPIO_Pin5                  0x20  /**< AFE GPIO5, only available on AD5941. */
-#define AGPIO_Pin6                  0x40  /**< AFE GPIO6, only available on AD5941. */
-#define AGPIO_Pin7                  0x80  /**< AFE GPIO7, only available on AD5941. */
+#define AGPIO_Pin3                  0x08  /**< AFE GPIO3, only available on AD5940. */
+#define AGPIO_Pin4                  0x10  /**< AFE GPIO4, only available on AD5940. */
+#define AGPIO_Pin5                  0x20  /**< AFE GPIO5, only available on AD5940. */
+#define AGPIO_Pin6                  0x40  /**< AFE GPIO6, only available on AD5940. */
+#define AGPIO_Pin7                  0x80  /**< AFE GPIO7, only available on AD5940. */
 /** @} */
 
 /**
@@ -4262,11 +4262,7 @@ typedef struct
   uint32_t ADCRate;             /**< ADC Core sample rate */
   BoolFlag BpNotch;             /**< Bypass Notch filter in SINC2+Notch block, so only SINC2 is used. ADCFILTERCON.BIT4 */
   BoolFlag BpSinc3;             /**< Bypass SINC3 Module */
-  BoolFlag Sinc3ClkEnable;      /**< Enable SINC3 clock */
-  BoolFlag Sinc2NotchClkEnable; /**< Enable SINC2+Notch clock */
   BoolFlag Sinc2NotchEnable;    /**< Enable SINC2+Notch block */
-  BoolFlag DFTClkEnable;        /**< Enable DFT clock */
-  BoolFlag WGClkEnable;         /**< Enable Waveform Generator clock */
 }ADCFilterCfg_Type;
 /** @} */
 
@@ -4534,6 +4530,11 @@ typedef struct
 /**
  * Clock configure
 */
+/* Override with a project-wide compiler definition; default timeout is 100 ms. */
+#ifndef AD5940_HFXTAL_READY_TIMEOUT_MS
+#define AD5940_HFXTAL_READY_TIMEOUT_MS 100U
+#endif
+
 typedef struct
 {
   uint32_t SysClkSrc;       /**< System clock source @ref SYSCLKSRC_Const */
@@ -4835,9 +4836,9 @@ AD5940Err AD5940_WUPTTime(uint32_t SeqId, uint32_t SleepTime, uint32_t WakeupTim
 
 /* 7. MISC_Block */
 /* 7.1 Clock system */
-void      AD5940_CLKCfg(CLKCfg_Type *pClkCfg);
+AD5940Err AD5940_CLKCfg(CLKCfg_Type *pClkCfg);
 void      AD5940_HFOSC32MHzCtrl(BoolFlag Mode32MHz);
-void 			AD5940_HPModeEn(BoolFlag Enable);	/* Switch system clocks to high power mode for EIS >80kHz)*/
+void      AD5940_HPModeEn(BoolFlag Enable);	/* Switch system clocks to high power mode for EIS >20kHz)*/
 /* 7.2 AFE Interrupt */
 void      AD5940_INTCCfg(uint32_t AfeIntcSel, uint32_t AFEIntSrc, BoolFlag State);
 uint32_t  AD5940_INTCGetCfg(uint32_t AfeIntcSel);
